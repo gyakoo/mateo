@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resources">
+      <UniqueIdentifier>dc5a8eac-9227-47b0-bac0-e64d1824df72</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="graphics">
+      <UniqueIdentifier>{e89eb6fe-81d0-4aaf-b678-00c4706728a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="base">
+      <UniqueIdentifier>{d75fbddc-86bc-4697-950b-a257424314d7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="dxDevice.cpp">
+      <Filter>graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="renderPipeline.cpp">
+      <Filter>graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="testRenderPipeline.cpp">
+      <Filter>graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="base.cpp">
+      <Filter>base</Filter>
+    </ClCompile>
+    <ClCompile Include="resourceId.cpp">
+      <Filter>base</Filter>
+    </ClCompile>
+    <ClCompile Include="dxDeviceFactory.cpp">
+      <Filter>graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="dxHelper.cpp">
+      <Filter>graphics</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="dxDevice.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="dxHelper.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="stepTimer.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="renderPipeline.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="testRenderPipeline.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="base.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="resourceId.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="dxDeviceFactory.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
