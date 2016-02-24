@@ -38,6 +38,7 @@ namespace engine
         ID_VERTEXLAYOUT,
         ID_MESHBUFFER,
         ID_TEXTURE,
+        ID_BYTECODE,
         ID_SHADER,
         ID_SAMPLERSTATE,
         ID_DEPTHSTENCILSTATE,
@@ -72,6 +73,7 @@ namespace engine
     typedef resourceId<ID_VERTEXLAYOUT>       idVertexLayout;
     typedef resourceId<ID_MESHBUFFER>         idMeshBuffer;
     typedef resourceId<ID_TEXTURE>            idTexture;
+    typedef resourceId<ID_BYTECODE>             idByteCode;
     typedef resourceId<ID_SHADER>             idShader;
     typedef resourceId<ID_SAMPLERSTATE>       idSamplerState;
     typedef resourceId<ID_DEPTHSTENCILSTATE>  idDepthStencilState;

@@ -143,7 +143,7 @@ void engine::dxDevice::CreateDeviceResources()
 	UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
 #if defined(_DEBUG)
-	if (engine::SdkLayersAvailable())
+	if (engine::dxHelper::SdkLayersAvailable())
 	{
 		// If the project is in a debug build, enable debugging via SDK Layers with this flag.
 		creationFlags |= D3D11_CREATE_DEVICE_DEBUG;

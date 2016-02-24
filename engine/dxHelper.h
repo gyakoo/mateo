@@ -64,5 +64,6 @@ namespace engine
         }
 #endif
         int32_t createEmptyTexture2D(int32_t width, int32_t height, DXGI_FORMAT texf, uint32_t bindflags, ID3D11Texture2D** pOutTex);
+        int32_t sizeOfFormatElement(DXGI_FORMAT format);
     };
 }

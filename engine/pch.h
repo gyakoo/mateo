@@ -15,5 +15,23 @@
 #include <memory>
 #include <agile.h>
 #include <concrt.h>
+#include <array>
 
 #include <engine/resourceId.h>
+
+#include <DirectXTK/Inc/Audio.h>
+#include <DirectXTK/Inc/CommonStates.h>
+#include <DirectXTK/Inc/DDSTextureLoader.h>
+#include <DirectXTK/Inc/DirectXHelpers.h>
+#include <DirectXTK/Inc/Effects.h>
+#include <DirectXTK/Inc/GamePad.h>
+#include <DirectXTK/Inc/GeometricPrimitive.h>
+#include <DirectXTK/Inc/GraphicsMemory.h>
+#include <DirectXTK/Inc/Keyboard.h>
+#include <DirectXTK/Inc/Model.h>
+#include <DirectXTK/Inc/Mouse.h>
+#include <DirectXTK/Inc/PrimitiveBatch.h>
+#include <DirectXTK/Inc/ScreenGrab.h>
+#include <DirectXTK/Inc/SimpleMath.h>
+#include <DirectXTK/Inc/VertexTypes.h>
+#include <DirectXTK/Inc/WICTextureLoader.h>

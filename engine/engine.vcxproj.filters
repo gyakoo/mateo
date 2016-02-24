@@ -26,9 +26,6 @@
     <ClCompile Include="base.cpp">
       <Filter>base</Filter>
     </ClCompile>
-    <ClCompile Include="resourceId.cpp">
-      <Filter>base</Filter>
-    </ClCompile>
     <ClCompile Include="dxDeviceFactory.cpp">
       <Filter>graphics</Filter>
     </ClCompile>

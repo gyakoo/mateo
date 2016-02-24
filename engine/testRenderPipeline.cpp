@@ -133,6 +133,8 @@ void testRenderPipeline::createResources()
     engine::ThrowIfFailed(
         dxDevice::getInstance()->GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_whiteBrush)
 		);
+
+    dxDevice::getInstance()->getFactory()->createTexture(L"stones.jpg");
 }
 void testRenderPipeline::releaseResources()
 {

@@ -184,8 +184,12 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="base.cpp" />
-    <ClCompile Include="resourceId.cpp" />
     <ClCompile Include="testRenderPipeline.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DirectXTK\DirectXTK_Windows10.vcxproj">
+      <Project>{f4776924-619c-42c7-88b2-82c947ccc9e7}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

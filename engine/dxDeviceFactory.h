@@ -2,13 +2,54 @@
 
 namespace engine
 {
-    struct dxRenderTarget
+    enum dxShaderStage 
+    { 
+        SHADER_VERTEX = 0, 
+        SHADER_HULL, 
+        SHADER_DOMAIN, 
+        SHADER_GEOMETRY, 
+        SHADER_PIXEL, 
+        SHADER_COMPUTE 
+    };
+
+    struct dxTexture
     {
-        ID3D11Texture2D*           pRTTexture;
-        ID3D11RenderTargetView*    pRTView;
-        ID3D11ShaderResourceView*  pSRView;
-        ID3D11Texture2D*           pRTDSTexture;
-        ID3D11DepthStencilView*    pRTDSView;
+        ID3D11Texture2D*            pTexture;
+        ID3D11ShaderResourceView*   pShaderRV;
+    };
+
+    struct dxRenderTarget : public dxTexture
+    {
+        ID3D11RenderTargetView*     pRTView;
+        ID3D11Texture2D*            pRTDSTexture;
+        ID3D11DepthStencilView*     pRTDSView;
+    };
+
+    struct dxVertexLayout
+    {
+        ID3D11InputLayout* pInputLayout;
+    };
+    
+    struct dxByteCode
+    {
+        std::shared_ptr< std::vector<byte> > data;
+
+        const void* getPtr() const { return &(*data.get())[0]; }
+        uint32_t getLength() const { return (uint32_t)data->size(); }
+    };
+
+    struct dxShader
+    {
+        dxShaderStage   stage;
+        ID3D11DeviceChild* shader;
+    };
+
+    struct dxMeshBuffer
+    {
+        ID3D11Buffer* vertexBuffer;
+        ID3D11Buffer* indexBuffer;
+        uint32_t vbCount;
+        uint32_t ibCount;
     };
 
     class dxDeviceFactory
@@ -20,14 +61,20 @@ namespace engine
 
         // Creation
         idRenderTarget  createRenderTarget(int32_t width, int32_t height, DXGI_FORMAT texf, bool asTexture = true, bool asDepth = false);
-        idTexture       createTexture(const char* filename, uint32_t flags = 0);
+        
+        idTexture       createTexture(const std::wstring& filename, bool async = true, uint32_t flags = 0);
         idTexture       createTexture(idRenderTarget rt);
         idTexture       createTexture(DXGI_FORMAT texf, uint8_t* data, uint32_t width, uint32_t height, bool asDynamic=false);
 
-/*        gyIDVertexLayout  CreateVertexLayout(gyVertexElement* elements, uint32_t count, gyShaderByteCode* pVSByteCode = 0);
-        gyIDMeshBuffer    CreateMeshBuffer(gyIDVertexLayout vLayout, gyPrimitiveTopology primTopology = PT_NONE, gyIndexType indexType = INDEX_NONE);
-        gySharedPtr<gyShaderByteCode> CompileShader(gyShaderType stype, const gyShaderSourceDesc& sourceDesc);
-        gyIDShader        CreateShader(gyShaderByteCode* pByteCode);        
+        idVertexLayout  createVertexLayout(const std::vector<D3D11_INPUT_ELEMENT_DESC>& elements, idByteCode bytecode);
+
+        idByteCode      createShaderByteCode(const std::wstring& filename, bool async=true);
+        idByteCode      createShaderByteCode(const std::vector<byte>& bytecode);
+
+        idShader        createShader(idByteCode byteCodeId, dxShaderStage stage);
+        idMeshBuffer    createMeshBuffer(idVertexLayout vlId, int indexStrideBytes);
+
+/*      
         gyIDSamplerState  CreateSamplerState(gyFilterType filter, gyAddress u, gyAddress v, gyAddress w, float lodBias = 0.0f, uint8_t maxAniso = 16, const float* bordercol = 0, gyComparisonFunc compFunc = COMP_NONE);
         gyIDDepthStencilState CreateDepthStencilState(bool depthTest, bool depthWrite, gyComparisonFunc depthFunc = COMP_LESS_EQUAL,
             bool stencilTest = false, uint8_t stencilReadMask = 0xff, uint8_t stencilWriteMask = 0xff,
@@ -43,7 +90,11 @@ namespace engine
         int32_t CreateShaderTechnique(gyShaderTechnique* pOutTech, gyShaderSourceDesc* stageSources, gyShaderType* types, int32_t count);
 */
         // Accessing to internal resources (only for local operations, do not use the resource pointers. use ids instead)
-        dxRenderTarget*   lockRenderTarget(idRenderTarget rtId);
+        const dxRenderTarget& lockRenderTarget(idRenderTarget rtId) const;
+        const dxByteCode& lockByteCode(idByteCode bcId) const;
+        const dxVertexLayout& lockVertexLayout(idVertexLayout vlId) const;
+        const dxShader& lockShader(idShader shId) const;
+        const dxMeshBuffer& lockMeshBuffer(idMeshBuffer mbId) const;
 /*
         gyVertexLayout*   LockVertexLayout(gyIDVertexLayout vlId);
         gyMeshBuffer*     LockMeshBuffer(gyIDMeshBuffer mbId);
@@ -54,7 +105,11 @@ namespace engine
         gyDepthStencilState* LockDepthStencilState(gyIDDepthStencilState dsId);
         gyBlendState*     LockBlendState(gyIDBlendState bsId);
 */
-        void unlockRenderTarget(idRenderTarget rtId);
+        void unlockRenderTarget(idRenderTarget rtId) const;
+        void unlockByteCode(idByteCode bcId) const;
+        void unlockVertexLayout(idVertexLayout vlId) const;
+        void unlockShader(idShader shId) const;
+        void unlockMeshBuffer(idMeshBuffer mbId) const;
 /*        void UnlockVertexLayout(gyIDVertexLayout vlId);
         void UnlockMeshBuffer(gyIDMeshBuffer mbId);
         void UnlockShader(gyIDShader shId);
@@ -75,7 +130,11 @@ namespace engine
 */
     protected:
         std::vector<dxRenderTarget> m_renderTargets;
-
+        std::vector<dxTexture> m_textures;
+        std::vector<dxVertexLayout> m_vertexLayouts;
+        std::vector<dxByteCode> m_byteCodes;
+        std::vector<dxShader> m_shaders;
+        std::vector<dxMeshBuffer> m_meshBuffers;
 /*        gyIDTexture InternalAddTexture(gyTexture* pTex, int initRes);
 
         gyResourceMgr<gyTexture, ID_TEXTURE> textureArray;
