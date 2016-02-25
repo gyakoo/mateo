@@ -15,7 +15,7 @@ TestRenderPipeline::TestRenderPipeline()
 	// Create device independent resources
 	ComPtr<IDWriteTextFormat> textFormat;
 	Engine::ThrowIfFailed(
-		DxDevice::getInstance()->GetDWriteFactory()->CreateTextFormat(
+		DxDevice::GetInstance()->GetDWriteFactory()->CreateTextFormat(
 			L"Segoe UI",
 			nullptr,
 			DWRITE_FONT_WEIGHT_LIGHT,
@@ -36,14 +36,14 @@ TestRenderPipeline::TestRenderPipeline()
 		);
 
     Engine::ThrowIfFailed(
-		DxDevice::getInstance()->GetD2DFactory()->CreateDrawingStateBlock(&m_stateBlock)
+		DxDevice::GetInstance()->GetD2DFactory()->CreateDrawingStateBlock(&m_stateBlock)
 		);
 }
 
 // Updates the text to be displayed.
 void TestRenderPipeline::Update(const StepTimer& timer)
 {
-    auto DxDevice = DxDevice::getInstance();
+    auto DxDevice = DxDevice::GetInstance();
 
     // Update display text.
 	uint32 fps = timer.GetFramesPerSecond();
@@ -74,7 +74,7 @@ void TestRenderPipeline::Update(const StepTimer& timer)
 // Renders a frame to the screen.
 void TestRenderPipeline::Render()
 {
-    auto DxDevice = DxDevice::getInstance();
+    auto DxDevice = DxDevice::GetInstance();
 
     // clear render target
     {
@@ -93,8 +93,8 @@ void TestRenderPipeline::Render()
         context->ClearDepthStencilView(DxDevice->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     }
 
-	ID2D1DeviceContext* context = DxDevice::getInstance()->GetD2DDeviceContext();
-	Windows::Foundation::Size logicalSize = DxDevice::getInstance()->GetLogicalSize();
+	ID2D1DeviceContext* context = DxDevice::GetInstance()->GetD2DDeviceContext();
+	Windows::Foundation::Size logicalSize = DxDevice::GetInstance()->GetLogicalSize();
 
 	context->SaveDrawingState(m_stateBlock.Get());
 	context->BeginDraw();
@@ -105,7 +105,7 @@ void TestRenderPipeline::Render()
 		logicalSize.Height - m_textMetrics.height
 		);
 
-	context->SetTransform(screenTranslation * DxDevice::getInstance()->GetOrientationTransform2D());
+	context->SetTransform(screenTranslation * DxDevice::GetInstance()->GetOrientationTransform2D());
 
     Engine::ThrowIfFailed(
 		m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING)
@@ -131,30 +131,30 @@ void TestRenderPipeline::Render()
 void TestRenderPipeline::createResources()
 {
     Engine::ThrowIfFailed(
-        DxDevice::getInstance()->GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_whiteBrush)
+        DxDevice::GetInstance()->GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_whiteBrush)
 		);
 
-    auto factory = DxDevice::getInstance()->getFactory();
-    factory->createTexture(L"Content\\stones.jpg")
+    auto& factory = DxDevice::GetInstance()->GetFactory();
+    factory.createTexture(L"Content\\stones.jpg")
         .then([this](IdTexture texId) 
     {
         m_mytex = texId; 
     });
 
-    factory->createShaderByteCode(L"SamplePixelShader.cso")
-        .then([factory, this](IdByteCode bcId)
+    factory.createShaderByteCode(L"SamplePixelShader.cso")
+        .then([&factory, this](IdByteCode bcId)
     {
-        m_ps = factory->createShader(bcId, SHADER_PIXEL);
+        m_ps = factory.createShader(bcId, SHADER_PIXEL);
     } );
 }
 void TestRenderPipeline::releaseResources()
 {
 	m_whiteBrush.Reset();
 
-    auto factory = DxDevice::getInstance()->getFactory();
-    factory->releaseResource(m_ps);
-    factory->releaseResource(m_psByteCode);
-    factory->releaseResource(m_mytex);
+    auto factory = DxDevice::GetInstance()->GetFactory();
+    factory.releaseResource(m_ps);
+    factory.releaseResource(m_psByteCode);
+    factory.releaseResource(m_mytex);
 }
 
 void TestRenderPipeline::ReloadWindowSizeResources()

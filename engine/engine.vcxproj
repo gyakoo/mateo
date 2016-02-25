@@ -163,6 +163,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="dxDevice.h" />
+    <ClInclude Include="DxDeviceContext.h" />
     <ClInclude Include="dxDeviceFactory.h" />
     <ClInclude Include="dxHelper.h" />
     <ClInclude Include="pch.h" />
@@ -174,6 +175,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dxDevice.cpp" />
+    <ClCompile Include="DxDeviceContext.cpp" />
     <ClCompile Include="dxDeviceFactory.cpp" />
     <ClCompile Include="dxHelper.cpp" />
     <ClCompile Include="renderPipeline.cpp" />

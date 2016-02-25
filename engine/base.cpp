@@ -2,6 +2,7 @@
 #include "base.h"
 #include <engine/testRenderPipeline.h>
 #include <engine/dxDevice.h>
+#include <engine/dxHelper.h>
 #include <engine/renderPipeline.h>
 
 using namespace Platform;
@@ -192,6 +193,8 @@ namespace Engine
           rpip->createResources();
           rpip->ReloadWindowSizeResources();
       }
+
+      ThrowIfAssert(ret != -1, L"No render pipeline created");
       return ret;
   }
 

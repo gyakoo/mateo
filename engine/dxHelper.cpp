@@ -21,7 +21,7 @@ int32_t DxHelper::CreateEmptyTexture2D(int32_t width, int32_t height, DXGI_FORMA
     descDepth.BindFlags = bindflags;
     descDepth.CPUAccessFlags = 0;
     descDepth.MiscFlags = 0;
-    return DxDevice::getInstance()->GetD3DDevice()->CreateTexture2D(&descDepth, NULL, pOutTex);
+    return DxDevice::GetInstance()->GetD3DDevice()->CreateTexture2D(&descDepth, NULL, pOutTex);
 }
 
 int32_t DxHelper::SizeOfFormatElement(DXGI_FORMAT format)

@@ -42,7 +42,7 @@ void DxDeviceFactory::unlock##typetoken(Id##typetoken id) const\
 	Id##typetoken id((uint32_t)m_##typetoken##s.size());\
 	Dx##typetoken state; \
 	state.state = DXSTATE_LOADED; \
-	ThrowIfFailed(DxDevice::getInstance()->GetD3DDevice()->Create##typetoken(descptr, &state.stateObj)); \
+	ThrowIfFailed(DxDevice::GetInstance()->GetD3DDevice()->Create##typetoken(descptr, &state.stateObj)); \
 	m_##typetoken##s.push_back(state);\
 	return id;
 
@@ -50,7 +50,7 @@ void DxDeviceFactory::unlock##typetoken(Id##typetoken id) const\
 	auto meshBuffer = lockMeshBuffer(mbId);\
 	ThrowIfAssert(meshBuffer.##typetoken##StrideBytes != 0);\
 	D3D11_BOX updateBox = { 0, 0, 0, meshBuffer.##typetoken##StrideBytes*##typetoken##Count, 1, 1 };\
-	DxDevice::getInstance()->GetD3DDeviceContext()->UpdateSubresource(meshBuffer.##typetoken##Buffer, 0, &updateBox, typetoken##Data, 0, 0);\
+	DxDevice::GetInstance()->GetD3DDeviceContext()->UpdateSubresource(meshBuffer.##typetoken##Buffer, 0, &updateBox, typetoken##Data, 0, 0);\
 	unlockMeshBuffer(mbId)
 
 #define DXDEVFACTORY_EMIT_MAPBUFFER(typetoken) \
@@ -58,7 +58,7 @@ void DxDeviceFactory::unlock##typetoken(Id##typetoken id) const\
 	typetoken##Count = meshBuffer.##typetoken##Count;\
 	typetoken##StrideBytes = meshBuffer.##typetoken##StrideBytes;\
 	D3D11_MAPPED_SUBRESOURCE mapped;\
-	ThrowIfFailed(DxDevice::getInstance()->GetD3DDeviceContext()->Map(meshBuffer.##typetoken##Buffer, 0, mapType, 0, &mapped));\
+	ThrowIfFailed(DxDevice::GetInstance()->GetD3DDeviceContext()->Map(meshBuffer.##typetoken##Buffer, 0, mapType, 0, &mapped));\
 	*outData = mapped.pData;\
 	unlockMeshBuffer(mbId)
 
@@ -137,7 +137,7 @@ void DxDeviceFactory::releaseResources()
 
 IdRenderTarget  DxDeviceFactory::createRenderTarget(int32_t width, int32_t height, DXGI_FORMAT texf, bool asTexture, bool asDepth)
 {
-    ID3D11Device* pd3dDev = DxDevice::getInstance()->GetD3DDevice();    
+    ID3D11Device* pd3dDev = DxDevice::GetInstance()->GetD3DDevice();    
     DxRenderTarget renderTarget; ZeroMemory(&renderTarget, sizeof(DxRenderTarget));
 
     unsigned int bindFlags = D3D11_BIND_RENDER_TARGET;
@@ -148,11 +148,11 @@ IdRenderTarget  DxDeviceFactory::createRenderTarget(int32_t width, int32_t heigh
     ThrowIfFailed(DxHelper::CreateEmptyTexture2D(width, height, texf, bindFlags, &renderTarget.texture));
 
     // Create the render target view (uses the texture as render target)
-    ThrowIfFailed(pd3dDev->CreateRenderTargetView(renderTarget.texture, NULL, &renderTarget.renderTargetView));
+    ThrowIfFailed(pd3dDev->CreateRenderTargetView(renderTarget.texture.Get(), NULL, &renderTarget.renderTargetView));
 
     // Create the shader resource view if it will be used as texture in a shader
     if (asTexture)
-        ThrowIfFailed(pd3dDev->CreateShaderResourceView(renderTarget.texture, NULL, &renderTarget.textureShaderResourceView));
+        ThrowIfFailed(pd3dDev->CreateShaderResourceView(renderTarget.texture.Get(), NULL, &renderTarget.textureShaderResourceView));
 
     if (asDepth)
     {
@@ -174,9 +174,9 @@ task<IdTexture> DxDeviceFactory::createTexture(const std::wstring& filename, uin
         IdTexture texId((uint32_t)m_textures.size());
         DxTexture tex;
         tex.state = DXSTATE_LOADED;
-        auto dxDev = DxDevice::getInstance()->GetD3DDevice();
+        auto dxDev = DxDevice::GetInstance()->GetD3DDevice();
         ThrowIfFailed(CreateWICTextureFromMemory((ID3D11Device*)dxDev, (uint8_t*)&fileData[0], fileData.size(),
-            (ID3D11Resource**)&tex.texture, &tex.textureShaderResourceView));
+            (ID3D11Resource**)tex.texture.GetAddressOf(), tex.textureShaderResourceView.GetAddressOf()));
         m_textures.push_back(tex);
         return texId;
     });	
@@ -188,17 +188,9 @@ IdTexture DxDeviceFactory::createTexture(IdRenderTarget rt)
     
 	DxTexture texture;
 	texture.state = DXSTATE_LOADED;
-    if (rtTex.texture)
-    {
-        texture.texture = rtTex.texture;
-        texture.texture->AddRef();
-    }
-    if (rtTex.textureShaderResourceView)
-    {
-        texture.textureShaderResourceView = rtTex.textureShaderResourceView;
-        texture.textureShaderResourceView->AddRef();
-    }
-	
+    texture.texture = rtTex.texture;
+    texture.textureShaderResourceView = rtTex.textureShaderResourceView;
+
     IdTexture retId((uint32_t)m_textures.size());
     m_textures.push_back(texture);
     return retId;
@@ -234,9 +226,9 @@ IdTexture DxDeviceFactory::createTexture(DXGI_FORMAT texf, uint8_t* data, uint32
 	texture.state = DXSTATE_LOADED;
 
     // create resource and shader view
-    auto dxDev = DxDevice::getInstance()->GetD3DDevice();
+    auto dxDev = DxDevice::GetInstance()->GetD3DDevice();
     ThrowIfFailed(dxDev->CreateTexture2D(&desc, &srdata, &texture.texture));
-    ThrowIfFailed( dxDev->CreateShaderResourceView(texture.texture, NULL, &texture.textureShaderResourceView) );
+    ThrowIfFailed( dxDev->CreateShaderResourceView(texture.texture.Get(), NULL, &texture.textureShaderResourceView) );
 
     // add to list
     IdTexture retId((uint32_t)m_textures.size());
@@ -250,7 +242,7 @@ IdVertexLayout  DxDeviceFactory::createVertexLayout(const std::vector<D3D11_INPU
     ThrowIfFailed(elements.empty() ? E_FAIL : S_OK);
     ThrowIfFailed(!bcId.IsValid() ? E_FAIL : S_OK);
 
-    auto dxDev = DxDevice::getInstance()->GetD3DDevice();
+    auto dxDev = DxDevice::GetInstance()->GetD3DDevice();
     auto byteCode = lockByteCode(bcId);
 	DxVertexLayout vertexLayout;
 	vertexLayout.state = DXSTATE_LOADED;
@@ -292,7 +284,7 @@ IdByteCode DxDeviceFactory::createShaderByteCode(const std::vector<byte>& byteco
 
 IdShader DxDeviceFactory::createShader(IdByteCode byteCodeId, eDxShaderStage stage)
 {
-    auto dxDev = DxDevice::getInstance()->GetD3DDevice();
+    auto dxDev = DxDevice::GetInstance()->GetD3DDevice();
     DxShader shader;
 
     auto byteCode = lockByteCode(byteCodeId);
@@ -347,7 +339,7 @@ static void createBufferInternal(UINT byteWidth, UINT bindFlags, const void* ini
 		pInitData->pSysMem = initData;
 	}
 
-	ThrowIfFailed(DxDevice::getInstance()->GetD3DDevice()->CreateBuffer(&bd, pInitData, pBuffer));
+	ThrowIfFailed(DxDevice::GetInstance()->GetD3DDevice()->CreateBuffer(&bd, pInitData, pBuffer));
 }
 
 void	DxDeviceFactory::createMeshBufferVertices(IdMeshBuffer mbId, const void* vertexData, uint32_t vertexCount, uint32_t vertexStrideBytes)
@@ -394,7 +386,7 @@ void DxDeviceFactory::mapMeshBufferVertices(IdMeshBuffer mbId, uint32_t& vertexC
 void DxDeviceFactory::unmapMeshBufferVertices(IdMeshBuffer mbId)
 {
 	auto meshBuffer = lockMeshBuffer(mbId);
-	DxDevice::getInstance()->GetD3DDeviceContext()->Unmap(meshBuffer.vertexBuffer, 0);
+	DxDevice::GetInstance()->GetD3DDeviceContext()->Unmap(meshBuffer.vertexBuffer, 0);
 	unlockMeshBuffer(mbId);
 }
 
@@ -406,7 +398,7 @@ void DxDeviceFactory::mapMeshBufferIndices(IdMeshBuffer mbId, uint32_t& indexCou
 void DxDeviceFactory::unmapMeshBufferIndices(IdMeshBuffer mbId)
 {
 	auto meshBuffer = lockMeshBuffer(mbId);
-	DxDevice::getInstance()->GetD3DDeviceContext()->Unmap(meshBuffer.indexBuffer, 0);
+	DxDevice::GetInstance()->GetD3DDeviceContext()->Unmap(meshBuffer.indexBuffer, 0);
 	unlockMeshBuffer(mbId);
 }
 
@@ -471,7 +463,7 @@ IdSamplerState DxDeviceFactory::createSamplerState(D3D11_FILTER filter, D3D11_TE
 	desc.AddressU = addressMode;
 	desc.AddressV = addressMode;
 	desc.AddressW = addressMode;
-	desc.MaxAnisotropy = (DxDevice::getInstance()->GetD3DDevice()->GetFeatureLevel() > D3D_FEATURE_LEVEL_9_1) ? 16 : 2;
+	desc.MaxAnisotropy = (DxDevice::GetInstance()->GetD3DDevice()->GetFeatureLevel() > D3D_FEATURE_LEVEL_9_1) ? 16 : 2;
 
 	desc.MaxLOD = FLT_MAX;
 	desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
@@ -518,7 +510,7 @@ IdSamplerState DxDeviceFactory::getCommonSamplerState(DxCommonSamplerType sample
 void DxDeviceFactory::createCommonStates()
 {
 	using namespace DirectX;
-	CommonStates commonStates(DxDevice::getInstance()->GetD3DDevice());
+	CommonStates commonStates(DxDevice::GetInstance()->GetD3DDevice());
 	
 	// blend states
 	DXDEVFACTORY_EMIT_CREATECOMMON(BlendState, COMMONBLEND_MAX, &CommonStates::Opaque, &CommonStates::AlphaBlend, &CommonStates::Additive, &CommonStates::NonPremultiplied);

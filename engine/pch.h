@@ -35,3 +35,6 @@
 #include <DirectXTK/Inc/SimpleMath.h>
 #include <DirectXTK/Inc/VertexTypes.h>
 #include <DirectXTK/Inc/WICTextureLoader.h>
+
+#define DxSafeRelease(ptr) { if (ptr) { (ptr)->Release(); (ptr)=nullptr; } }
+

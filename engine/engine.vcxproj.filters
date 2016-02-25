@@ -32,6 +32,9 @@
     <ClCompile Include="dxHelper.cpp">
       <Filter>graphics</Filter>
     </ClCompile>
+    <ClCompile Include="DxDeviceContext.cpp">
+      <Filter>graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -57,6 +60,9 @@
       <Filter>base</Filter>
     </ClInclude>
     <ClInclude Include="dxDeviceFactory.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="DxDeviceContext.h">
       <Filter>graphics</Filter>
     </ClInclude>
   </ItemGroup>

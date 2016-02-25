@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <engine/base.h>
 #include <engine/dxDeviceFactory.h>
+#include <engine/DxDeviceContext.h>
 
 namespace Engine
 {
@@ -20,8 +21,9 @@ namespace Engine
 		void Trim();
 		void Present();
 
-        DxDeviceFactory* getFactory() { return m_factory.get(); }
-        static DxDevice* getInstance() { return s_instance; }
+        DxDeviceFactory& GetFactory() { return *m_factory.get(); }
+        DxDeviceContext& GetDefaultContext() { return *m_defaultContext.get(); }
+        static DxDevice* GetInstance() { return s_instance; }
 
 		// The size of the render target, in pixels.
 		Windows::Foundation::Size	GetOutputSize() const					{ return m_outputSize; }
@@ -92,6 +94,7 @@ namespace Engine
 		float											m_dpi;
 
         std::unique_ptr<DxDeviceFactory> m_factory;
+        std::unique_ptr<DxDeviceContext> m_defaultContext;
 
 		// This is the DPI that will be reported back to the app. It takes into account whether the app supports high resolution screens or not.
 		float m_effectiveDpi;

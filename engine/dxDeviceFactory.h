@@ -1,7 +1,5 @@
 #pragma once
 
-#define DxSafeRelease(ptr) { if (ptr) { (ptr)->Release(); (ptr)=nullptr; } }
-
 #define DXDEVFACTORY_EMIT_LOCKUNLOCK_DECL(typetoken) \
         const Dx##typetoken& lock##typetoken(Id##typetoken id) const;\
         void unlock##typetoken(Id##typetoken id) const;
@@ -57,14 +55,14 @@ namespace Engine
     struct DxTexture : public DxResource
     {
 		DxTexture() : texture(nullptr), textureShaderResourceView(nullptr) {}
-		void release()
-		{
-			DxSafeRelease(texture);
-			DxSafeRelease(textureShaderResourceView);
-		}
+        void release()
+        {
+            texture = nullptr;
+            textureShaderResourceView = nullptr;
+        }
 
-        ID3D11Texture2D*            texture;
-        ID3D11ShaderResourceView*   textureShaderResourceView;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> textureShaderResourceView;
     };
 
     struct DxRenderTarget : public DxTexture

@@ -11,7 +11,7 @@ GameMain::GameMain(Windows::ApplicationModel::Core::CoreApplicationView^ appView
   m_engineBase = ref new Engine::Base(appView, true);
 
   // test
-  m_engineBase->RegisterRenderPipeline("testRenderPipeline");
+  m_engineBase->RegisterRenderPipeline("TestRenderPipeline");
 }
 
 GameMain::~GameMain()

@@ -86,6 +86,7 @@ Engine::DxDevice::DxDevice(Engine::Base^ baseEngine) :
 	CreateDeviceResources();
 
     m_factory = std::make_unique<DxDeviceFactory>();
+    m_defaultContext = std::make_unique<DxDeviceContext>(GetD3DDeviceContext());
 }
 
 Engine::DxDevice::~DxDevice()
