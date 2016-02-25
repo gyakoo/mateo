@@ -4,6 +4,15 @@
 
 namespace engine
 {
+	inline void ThrowIfFailed(HRESULT hr, Platform::String^ msg)
+	{
+		if (FAILED(hr))
+		{
+			// Set a breakpoint on this line to catch Win32 API errors.
+			throw Platform::Exception::CreateException(hr, msg);
+		}
+	}
+
 	inline void ThrowIfFailed(HRESULT hr)
 	{
 		if (FAILED(hr))
@@ -11,6 +20,14 @@ namespace engine
 			// Set a breakpoint on this line to catch Win32 API errors.
 			throw Platform::Exception::CreateException(hr);
 		}
+	}
+
+	inline void ThrowIfFailedExp(bool exp, const wchar_t* msg=nullptr)
+	{
+		if (msg)
+			ThrowIfFailed(exp ? S_OK : E_FAIL, ref new	Platform::String(msg));
+		else
+			ThrowIfFailed(exp ? S_OK : E_FAIL);
 	}
 
 	// Function that reads from a binary file asynchronously.

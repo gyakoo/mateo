@@ -42,7 +42,7 @@ namespace engine
         ID_SHADER,
         ID_SAMPLERSTATE,
         ID_DEPTHSTENCILSTATE,
-        ID_RASTERSTATE,
+        ID_RASTERIZERSTATE,
         ID_BLENDSTATE,
 
         // INPUT
@@ -73,11 +73,11 @@ namespace engine
     typedef resourceId<ID_VERTEXLAYOUT>       idVertexLayout;
     typedef resourceId<ID_MESHBUFFER>         idMeshBuffer;
     typedef resourceId<ID_TEXTURE>            idTexture;
-    typedef resourceId<ID_BYTECODE>             idByteCode;
+    typedef resourceId<ID_BYTECODE>           idByteCode;
     typedef resourceId<ID_SHADER>             idShader;
     typedef resourceId<ID_SAMPLERSTATE>       idSamplerState;
     typedef resourceId<ID_DEPTHSTENCILSTATE>  idDepthStencilState;
-    typedef resourceId<ID_RASTERSTATE>        idRasterState;
+    typedef resourceId<ID_RASTERIZERSTATE>    idRasterizerState;
     typedef resourceId<ID_BLENDSTATE>         idBlendState;
     typedef resourceId<ID_INPUTTRIGGER>       idInputTrigger;
     typedef resourceId<ID_JOB>                idJob;
