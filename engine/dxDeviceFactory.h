@@ -164,11 +164,11 @@ namespace engine
 
 		// Creation
 		idRenderTarget  createRenderTarget(int32_t width, int32_t height, DXGI_FORMAT texf, bool asTexture = true, bool asDepth = false);
-		idTexture       createTexture(const std::wstring& filename, bool async = true, uint32_t flags = 0);
+		Concurrency::task<idTexture> createTexture(const std::wstring& filename, uint32_t flags = 0);
 		idTexture       createTexture(idRenderTarget rt);
 		idTexture       createTexture(DXGI_FORMAT texf, uint8_t* data, uint32_t width, uint32_t height, bool asDynamic = false);
 		idVertexLayout  createVertexLayout(const std::vector<D3D11_INPUT_ELEMENT_DESC>& elements, idByteCode bytecode);
-		idByteCode      createShaderByteCode(const std::wstring& filename, bool async = true);
+        Concurrency::task<idByteCode> createShaderByteCode(const std::wstring& filename);
 		idByteCode      createShaderByteCode(const std::vector<byte>& bytecode);
 		idShader        createShader(idByteCode byteCodeId, dxShaderStage stage);
 		idMeshBuffer    createMeshBuffer(const dxMeshBufferElementDesc* vertexDesc=nullptr, const dxMeshBufferElementDesc* indexDesc=nullptr);

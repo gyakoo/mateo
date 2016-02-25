@@ -13,7 +13,10 @@ namespace engine
         inline uint8_t   type()const { return  (id&TYPEMASK) >> TYPESHIFT; }
         inline uint32_t  number()const { return (id&(~TYPEMASK)); }
         inline void    number(uint32_t n) { id = (id&TYPEMASK) | (n&(~TYPEMASK)); }
-        inline bool    isValid()const { return (id&(~TYPEMASK)) != (~TYPEMASK); }
+        inline bool    isValid()const 
+        { 
+            return (id&(~TYPEMASK)) != (~TYPEMASK); 
+        }
         inline void    invalidate() { id = (N << TYPESHIFT) | (~TYPEMASK); }
         inline bool    operator ==(const resourceId<N>& o) { return id == o.id; }
         inline operator uint32_t() { return id; }

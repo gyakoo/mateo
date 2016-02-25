@@ -2,3 +2,9 @@ game/game.vcxproj.user
 DirectXTK/
 .vs/
 .vs/mateo/v14/.suo
+mateo.sdf
+bin/
+ipch/
+mateo.VC.opendb
+
+.vs/mateo/v14/.suo

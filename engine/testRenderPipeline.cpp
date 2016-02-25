@@ -134,11 +134,27 @@ void testRenderPipeline::createResources()
         dxDevice::getInstance()->GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_whiteBrush)
 		);
 
-    dxDevice::getInstance()->getFactory()->createTexture(L"Content\\stones.jpg");
+    auto factory = dxDevice::getInstance()->getFactory();
+    factory->createTexture(L"Content\\stones.jpg")
+        .then([this](idTexture texId) 
+    {
+        m_mytex = texId; 
+    });
+
+    factory->createShaderByteCode(L"SamplePixelShader.cso")
+        .then([factory, this](idByteCode bcId)
+    {
+        m_ps = factory->createShader(bcId, SHADER_PIXEL);
+    } );
 }
 void testRenderPipeline::releaseResources()
 {
 	m_whiteBrush.Reset();
+
+    auto factory = dxDevice::getInstance()->getFactory();
+    factory->releaseResource(m_ps);
+    factory->releaseResource(m_psByteCode);
+    factory->releaseResource(m_mytex);
 }
 
 void testRenderPipeline::reloadWindowSizeResources()

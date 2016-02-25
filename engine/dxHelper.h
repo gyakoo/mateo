@@ -22,7 +22,7 @@ namespace engine
 		}
 	}
 
-	inline void ThrowIfFailedExp(bool exp, const wchar_t* msg=nullptr)
+	inline void ThrowIfAssert(bool exp, const wchar_t* msg=nullptr)
 	{
 		if (msg)
 			ThrowIfFailed(exp ? S_OK : E_FAIL, ref new	Platform::String(msg));
@@ -49,7 +49,7 @@ namespace engine
 			return returnBuffer;
 		});
 	}
-
+    
 	// Converts a length in device-independent pixels (DIPs) to a length in physical pixels.
 	inline float ConvertDipsToPixels(float dips, float dpi)
 	{

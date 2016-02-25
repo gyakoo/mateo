@@ -4,6 +4,8 @@
 #include <engine/dxHelper.h>
 
 using namespace engine;
+using namespace Concurrency;
+using namespace DirectX;
 
 #define DXDEVFACTORY_EMIT_CREATESHADER(typetoken) \
 {\
@@ -46,7 +48,7 @@ void dxDeviceFactory::unlock##typetoken(id##typetoken id) const\
 
 #define DXDEVFACTORY_EMIT_FILLBUFFER(typetoken) 	\
 	auto meshBuffer = lockMeshBuffer(mbId);\
-	ThrowIfFailedExp(meshBuffer.##typetoken##StrideBytes == 0);\
+	ThrowIfAssert(meshBuffer.##typetoken##StrideBytes != 0);\
 	D3D11_BOX updateBox = { 0, 0, 0, meshBuffer.##typetoken##StrideBytes*##typetoken##Count, 1, 1 };\
 	dxDevice::getInstance()->GetD3DDeviceContext()->UpdateSubresource(meshBuffer.##typetoken##Buffer, 0, &updateBox, typetoken##Data, 0, 0);\
 	unlockMeshBuffer(mbId)
@@ -86,11 +88,11 @@ public:
     template<typename IDTYPE>
     const CONT& lock(IDTYPE id)
     {
-		ThrowIfFailedExp(!id.isValid(), L"id not valid");
-		ThrowIfFailedExp(id.number() >= m_cont.size(), L"id out of bounds");
+		ThrowIfAssert(id.isValid(), L"id not valid");
+		ThrowIfAssert(id.number() < m_cont.size(), L"id out of bounds");
         
 		const CONT& retRes = m_cont[id.number()];
-		ThrowIfFailedExp(retRes.lockCount != 0, L"Locked already");
+		ThrowIfAssert(retRes.lockCount == 0, L"Locked already");
 		++retRes.lockCount;
 		return retRes;
     }
@@ -98,12 +100,12 @@ public:
 	template<typename IDTYPE>
 	void unlock(IDTYPE id)
 	{
-		ThrowIfFailedExp(!id.isValid(), L"id not valid");
-		ThrowIfFailedExp(id.number() >= m_cont.size(), L"id out of bounds");
+		ThrowIfAssert(id.isValid(), L"id not valid");
+		ThrowIfAssert(id.number() < m_cont.size(), L"id out of bounds");
 
 		const CONT& retRes = m_cont[id.number()];
 		--retRes.lockCount;
-		ThrowIfFailedExp(retRes.lockCount < 0, L"Too many unlocks");
+		ThrowIfAssert(retRes.lockCount >= 0, L"Too many unlocks");
 	}
 
     const std::vector<CONT>& m_cont;
@@ -117,6 +119,16 @@ dxDeviceFactory::dxDeviceFactory()
 dxDeviceFactory::~dxDeviceFactory()
 {
 	releaseCommonStates();
+    ThrowIfAssert(m_renderTargets.empty());
+    ThrowIfAssert(m_textures.empty());
+    ThrowIfAssert(m_vertexLayouts.empty());
+    ThrowIfAssert(m_byteCodes.empty());
+    ThrowIfAssert(m_shaders.empty());
+    ThrowIfAssert(m_meshBuffers.empty());
+    ThrowIfAssert(m_BlendStates.empty());
+    ThrowIfAssert(m_DepthStencilStates.empty());
+    ThrowIfAssert(m_RasterizerStates.empty());
+    ThrowIfAssert(m_SamplerStates.empty());
 }
 
 void dxDeviceFactory::releaseResources()
@@ -154,25 +166,20 @@ idRenderTarget  dxDeviceFactory::createRenderTarget(int32_t width, int32_t heigh
     return retId;
 }
 
-idTexture dxDeviceFactory::createTexture(const std::wstring& filename, bool async, uint32_t flags)
+task<idTexture> dxDeviceFactory::createTexture(const std::wstring& filename, uint32_t flags)
 {
-    idTexture texId((uint32_t)m_textures.size());
-	dxTexture tex;
-	tex.state = DXSTATE_LOADING;
-	m_textures.push_back(tex);
-    auto readTask = engine::ReadDataAsync(filename);
-	readTask.then([texId, this](const std::vector<byte>& fileData)
-	{
-		dxTexture& tex = m_textures[texId.number()];
-		auto dxDev = dxDevice::getInstance()->GetD3DDevice();
-		auto hr = DirectX::CreateWICTextureFromMemory((ID3D11Device*)dxDev, (uint8_t*)&fileData[0], fileData.size(), (ID3D11Resource**)&tex.texture, &tex.textureShaderResourceView);
-		ThrowIfFailed(hr);
-		tex.state = DXSTATE_LOADED;
-    });
-
-    if ( !async )
-        readTask.wait();
-    return texId;
+    return create_task(engine::ReadDataAsync(filename))
+        .then([this](const std::vector<byte>& fileData) -> idTexture
+    {
+        idTexture texId((uint32_t)m_textures.size());
+        dxTexture tex;
+        tex.state = DXSTATE_LOADED;
+        auto dxDev = dxDevice::getInstance()->GetD3DDevice();
+        ThrowIfFailed(CreateWICTextureFromMemory((ID3D11Device*)dxDev, (uint8_t*)&fileData[0], fileData.size(),
+            (ID3D11Resource**)&tex.texture, &tex.textureShaderResourceView));
+        m_textures.push_back(tex);
+        return texId;
+    });	
 }
 
 idTexture dxDeviceFactory::createTexture(idRenderTarget rt)
@@ -259,23 +266,18 @@ idVertexLayout  dxDeviceFactory::createVertexLayout(const std::vector<D3D11_INPU
     return retId;
 }
 
-idByteCode dxDeviceFactory::createShaderByteCode(const std::wstring& filename, bool async)
+task<idByteCode> dxDeviceFactory::createShaderByteCode(const std::wstring& filename)
 {
-	idByteCode bcId((uint32_t)m_byteCodes.size());
-	dxByteCode byteCode;
-	byteCode.state = DXSTATE_LOADING;
-	m_byteCodes.push_back(byteCode);
-    auto readTask = engine::ReadDataAsync(filename);
-    readTask.then([bcId, this](const std::vector<byte>& fileData)
+    return create_task( engine::ReadDataAsync(filename) )
+        .then( [this](const std::vector<byte>& fileData) -> idByteCode
     {
-        dxByteCode& byteCode = m_byteCodes[bcId.number()];
+        idByteCode bcId((uint32_t)m_byteCodes.size());
+        dxByteCode byteCode;
+        byteCode.state = DXSTATE_LOADED;
         byteCode.data = std::make_shared<std::vector<byte>>(fileData);
-		byteCode.state = DXSTATE_LOADED;
+        m_byteCodes.push_back(byteCode);
+        return bcId;
     });
-
-    if (!async)
-        readTask.wait();
-    return bcId;
 }
 
 idByteCode dxDeviceFactory::createShaderByteCode(const std::vector<byte>& bytecode)
@@ -350,9 +352,9 @@ static void createBufferInternal(UINT byteWidth, UINT bindFlags, const void* ini
 
 void	dxDeviceFactory::createMeshBufferVertices(idMeshBuffer mbId, const void* vertexData, uint32_t vertexCount, uint32_t vertexStrideBytes)
 {
-	ThrowIfFailedExp(!mbId.isValid(), L"Mesh buffer not valid");
-	ThrowIfFailedExp(!vertexCount, L"Vertex count cannot be 0");
-	ThrowIfFailedExp(!vertexStrideBytes, L"Vertex stride cannot be 0");
+	ThrowIfAssert(mbId.isValid(), L"Mesh buffer not valid");
+	ThrowIfAssert(vertexCount!=0, L"Vertex count cannot be 0");
+	ThrowIfAssert(vertexStrideBytes!=0, L"Vertex stride cannot be 0");
 
 	auto meshBuffer = lockMeshBuffer(mbId);
 	createBufferInternal(vertexStrideBytes*vertexCount, D3D11_BIND_VERTEX_BUFFER, vertexData, &meshBuffer.vertexBuffer);
@@ -363,9 +365,9 @@ void	dxDeviceFactory::createMeshBufferVertices(idMeshBuffer mbId, const void* ve
 
 void	dxDeviceFactory::createMeshBufferIndices(idMeshBuffer mbId, const void* indexData, uint32_t indexCount, dxIndexFormat indexFormat)
 {
-	ThrowIfFailedExp(!mbId.isValid(), L"Mesh buffer not valid");
-	ThrowIfFailedExp(!indexCount, L"Index count cannot be 0");
-	ThrowIfFailedExp(indexFormat != 2 && indexFormat != 4, L"Index stride has to be 2 or 4");
+	ThrowIfAssert(mbId.isValid(), L"Mesh buffer not valid");
+	ThrowIfAssert(indexCount!=0, L"Index count cannot be 0");
+	ThrowIfAssert(indexFormat == 2 || indexFormat == 4, L"Index stride has to be 2 or 4");
 
 	auto meshBuffer = lockMeshBuffer(mbId);
 	createBufferInternal(static_cast<int>(indexFormat) * indexCount, D3D11_BIND_INDEX_BUFFER, indexData, &meshBuffer.indexBuffer);
@@ -487,7 +489,7 @@ void releaseResourceInternal(CONT& container, uint32_t n)
 
 void dxDeviceFactory::releaseResource(uint32_t resourceId)
 {
-	ThrowIfFailedExp(!idGeneric::createFrom(resourceId).isValid()); // check if valid resource
+	ThrowIfAssert(idGeneric::createFrom(resourceId).isValid()); // check if valid resource
 	const uint32_t resType = idGeneric::extractType(resourceId);
 	const uint32_t resNumber = idGeneric::extractNumber(resourceId);
 
@@ -504,7 +506,7 @@ void dxDeviceFactory::releaseResource(uint32_t resourceId)
 	case ID_RASTERIZERSTATE: releaseResourceInternal(m_RasterizerStates, resNumber); break;
 	case ID_BLENDSTATE: releaseResourceInternal(m_BlendStates, resNumber); break;
 	default:
-		ThrowIfFailedExp(false, L"Unknown resource to be released here");
+		ThrowIfAssert(false, L"Unknown resource to be released here");
 	}
 }
 
@@ -523,7 +525,6 @@ void dxDeviceFactory::createCommonStates()
 	DXDEVFACTORY_EMIT_CREATECOMMON(DepthStencilState, COMMONDEPTHSTENCIL_MAX, &CommonStates::DepthNone, &CommonStates::DepthDefault, &CommonStates::DepthRead);
 	DXDEVFACTORY_EMIT_CREATECOMMON(RasterizerState, COMMONRASTERIZER_MAX, &CommonStates::CullNone, &CommonStates::CullClockwise, &CommonStates::CullCounterClockwise, &CommonStates::Wireframe);
 	DXDEVFACTORY_EMIT_CREATECOMMON(SamplerState, COMMONSAMPLER_MAX, &CommonStates::PointWrap, &CommonStates::PointClamp, &CommonStates::LinearWrap, &CommonStates::LinearClamp, &CommonStates::AnisotropicWrap, &CommonStates::AnisotropicClamp );
-	
 }
 
 void dxDeviceFactory::releaseCommonStates()

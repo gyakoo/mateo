@@ -26,5 +26,9 @@ namespace engine
 		Microsoft::WRL::ComPtr<ID2D1DrawingStateBlock1> m_stateBlock;
 		Microsoft::WRL::ComPtr<IDWriteTextLayout3>      m_textLayout;
 		Microsoft::WRL::ComPtr<IDWriteTextFormat2>      m_textFormat;
+
+        idTexture   m_mytex;
+        idByteCode  m_psByteCode;
+        idShader    m_ps;
 	};
 }
