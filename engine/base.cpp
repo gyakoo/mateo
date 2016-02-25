@@ -15,20 +15,20 @@ using namespace Windows::System;
 using namespace Windows::Foundation;
 using namespace Windows::Graphics::Display;
 
-namespace engine
+namespace Engine
 {
 
-  base::base(CoreApplicationView^ appView, bool setEventHandlers)
+  Base::Base(CoreApplicationView^ appView, bool setEventHandlers)
   {
     if (setEventHandlers)
     {
       // lifecycle handlers
-      appView->Activated += ref new TypedEventHandler<CoreApplicationView^, IActivatedEventArgs^>(this, &base::onActivated);
-      CoreApplication::Suspending += ref new EventHandler<SuspendingEventArgs^>(this, &base::onSuspending);
-      CoreApplication::Resuming += ref new EventHandler<Platform::Object^>(this, &base::onResuming);
+      appView->Activated += ref new TypedEventHandler<CoreApplicationView^, IActivatedEventArgs^>(this, &Base::OnActivated);
+      CoreApplication::Suspending += ref new EventHandler<SuspendingEventArgs^>(this, &Base::OnSuspending);
+      CoreApplication::Resuming += ref new EventHandler<Platform::Object^>(this, &Base::OnResuming);
     }
 
-    m_dxDevice = std::make_unique<dxDevice>(this);
+    m_dxDevice = std::make_unique<DxDevice>(this);
 
     // TODO: Change the timer settings if you want something other than the default variable timestep mode.
     // e.g. for 60 FPS fixed timestep update logic, call:
@@ -39,25 +39,25 @@ namespace engine
 
   }
 
-  void base::onAppLoad(Platform::String^ entryPoint)
+  void Base::OnAppLoad(Platform::String^ entryPoint)
   {
 
   }
 
-  void base::update()
+  void Base::Update()
   {
     m_timer.Tick([&]()
     {
       // TODO: Replace this with your app's content update functions.      
       for (auto rpip : m_renderPipelines)
       {
-        rpip->update(m_timer);
+        rpip->Update(m_timer);
       }
     });
 
   }
 
-  void base::render()
+  void Base::Render()
   {
     // Don't try to render anything before the first Update.
     if (m_timer.GetFrameCount() == 0)
@@ -65,29 +65,29 @@ namespace engine
 
     for (auto rpip : m_renderPipelines)
     {
-      rpip->render();
+      rpip->Render();
     }
 
     // Render the scene objects.
     m_dxDevice->Present();
   }
 
-  void base::setWindow(CoreWindow^ window, bool setEventHandlers)
+  void Base::SetWindow(CoreWindow^ window, bool setEventHandlers)
   {
     m_window = window;
 
     if (setEventHandlers)
     {
       // window handlers
-      window->SizeChanged += ref new TypedEventHandler<CoreWindow^, WindowSizeChangedEventArgs^>(this, &base::onWindowSizeChanged);
-      window->VisibilityChanged += ref new TypedEventHandler<CoreWindow^, VisibilityChangedEventArgs^>(this, &base::onVisibilityChanged);
-      window->Closed += ref new TypedEventHandler<CoreWindow^, CoreWindowEventArgs^>(this, &base::onWindowClosed);
+      window->SizeChanged += ref new TypedEventHandler<CoreWindow^, WindowSizeChangedEventArgs^>(this, &Base::OnWindowSizeChanged);
+      window->VisibilityChanged += ref new TypedEventHandler<CoreWindow^, VisibilityChangedEventArgs^>(this, &Base::OnVisibilityChanged);
+      window->Closed += ref new TypedEventHandler<CoreWindow^, CoreWindowEventArgs^>(this, &Base::OnWindowClosed);
 
       // display info handlers
       DisplayInformation^ currentDisplayInformation = DisplayInformation::GetForCurrentView();
-      currentDisplayInformation->DpiChanged += ref new TypedEventHandler<DisplayInformation^, Object^>(this, &base::onDpiChanged);
-      currentDisplayInformation->OrientationChanged += ref new TypedEventHandler<DisplayInformation^, Object^>(this, &base::onOrientationChanged);
-      DisplayInformation::DisplayContentsInvalidated += ref new TypedEventHandler<DisplayInformation^, Object^>(this, &base::onDisplayContentsInvalidated);
+      currentDisplayInformation->DpiChanged += ref new TypedEventHandler<DisplayInformation^, Object^>(this, &Base::OnDpiChanged);
+      currentDisplayInformation->OrientationChanged += ref new TypedEventHandler<DisplayInformation^, Object^>(this, &Base::OnOrientationChanged);
+      DisplayInformation::DisplayContentsInvalidated += ref new TypedEventHandler<DisplayInformation^, Object^>(this, &Base::OnDisplayContentsInvalidated);
     }
 
     m_dxDevice->SetWindow(window);
@@ -95,12 +95,12 @@ namespace engine
 
 
   // Application lifecycle event handlers.
-  void base::onActivated(Windows::ApplicationModel::Core::CoreApplicationView^ applicationView, Windows::ApplicationModel::Activation::IActivatedEventArgs^ args)
+  void Base::OnActivated(Windows::ApplicationModel::Core::CoreApplicationView^ applicationView, Windows::ApplicationModel::Activation::IActivatedEventArgs^ args)
   {
 
   }
 
-  void base::onSuspending(Platform::Object^ sender, Windows::ApplicationModel::SuspendingEventArgs^ args)
+  void Base::OnSuspending(Platform::Object^ sender, Windows::ApplicationModel::SuspendingEventArgs^ args)
   {
     // Save app state asynchronously after requesting a deferral. Holding a deferral
     // indicates that the application is busy performing suspending operations. Be
@@ -116,29 +116,29 @@ namespace engine
     });
   }
 
-  void base::onResuming(Platform::Object^ sender, Platform::Object^ args)
+  void Base::OnResuming(Platform::Object^ sender, Platform::Object^ args)
   {
 
   }
 
   // Window event handlers.
-  void base::onWindowSizeChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::WindowSizeChangedEventArgs^ args)
+  void Base::OnWindowSizeChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::WindowSizeChangedEventArgs^ args)
   {
     m_dxDevice->SetLogicalSize(Size(sender->Bounds.Width, sender->Bounds.Height));
   }
 
-  void base::onVisibilityChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::VisibilityChangedEventArgs^ args)
+  void Base::OnVisibilityChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::VisibilityChangedEventArgs^ args)
   {
 
   }
 
-  void base::onWindowClosed(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::CoreWindowEventArgs^ args)
+  void Base::OnWindowClosed(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::CoreWindowEventArgs^ args)
   {
 
   }
 
   // DisplayInformation event handlers.
-  void base::onDpiChanged(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args)
+  void Base::OnDpiChanged(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args)
   {
     // Note: The value for LogicalDpi retrieved here may not match the effective DPI of the app
     // if it is being scaled for high resolution devices. Once the DPI is set on DeviceResources,
@@ -147,17 +147,17 @@ namespace engine
     m_dxDevice->SetDpi(sender->LogicalDpi);
   }
 
-  void base::onOrientationChanged(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args)
+  void Base::OnOrientationChanged(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args)
   {
     m_dxDevice->SetCurrentOrientation(sender->CurrentOrientation);
   }
 
-  void base::onDisplayContentsInvalidated(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args)
+  void Base::OnDisplayContentsInvalidated(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args)
   {
     m_dxDevice->ValidateDevice();
   }
 
-  void base::deviceLost()
+  void Base::DeviceLost()
   {
       for (auto rpip : m_renderPipelines)
       {
@@ -165,7 +165,7 @@ namespace engine
       }
   }
 
-  void base::deviceRestored()
+  void Base::DeviceRestored()
   {
       for (auto rpip : m_renderPipelines)
       {
@@ -173,29 +173,29 @@ namespace engine
       }
   }
 
-  void base::reloadWindowSizeResources()
+  void Base::ReloadWindowSizeResources()
   {
       for (auto rpip : m_renderPipelines)
       {
-          rpip->reloadWindowSizeResources();
+          rpip->ReloadWindowSizeResources();
       }
   }
 
-  int base::registerRenderPipeline(Platform::String^ pipelineName)
+  int Base::RegisterRenderPipeline(Platform::String^ pipelineName)
   {
       int ret = -1;
-      if (pipelineName == "testRenderPipeline")
+      if (pipelineName == "TestRenderPipeline")
       {
           ret = (int)m_renderPipelines.size();
-          auto rpip = std::make_shared<testRenderPipeline>();
+          auto rpip = std::make_shared<TestRenderPipeline>();
           m_renderPipelines.push_back(rpip);
           rpip->createResources();
-          rpip->reloadWindowSizeResources();
+          rpip->ReloadWindowSizeResources();
       }
       return ret;
   }
 
-  void base::unregisterRenderPipeline(int index)
+  void Base::UnregisterRenderPipeline(int index)
   {
       if (index >= 0 && index < (int)m_renderPipelines.size())
       {

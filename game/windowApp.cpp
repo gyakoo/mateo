@@ -1,9 +1,9 @@
 ﻿#include "pch.h"
-#include "windowApp.h"
+#include <game/WindowApp.h>
 
 #include <ppltasks.h>
 
-using namespace game;
+using namespace Game;
 
 using namespace concurrency;
 using namespace Windows::ApplicationModel;
@@ -19,65 +19,64 @@ using namespace Windows::Graphics::Display;
 [Platform::MTAThread]
 int main(Platform::Array<Platform::String^>^)
 {
-	auto appSourceCreator = ref new appSource();
+	auto appSourceCreator = ref new WindowAppSource();
 	CoreApplication::Run(appSourceCreator);
 	return 0;
 }
 
-IFrameworkView^ appSource::CreateView()
+IFrameworkView^ WindowAppSource::CreateView()
 {
-	return ref new windowApp();
+	return ref new WindowApp();
 }
 
-windowApp::windowApp() :
+WindowApp::WindowApp() :
 	m_windowClosed(false),
 	m_windowVisible(true)
 {
 }
 
 // The first method called when the IFrameworkView is being created.
-void windowApp::Initialize(CoreApplicationView^ applicationView)
+void WindowApp::Initialize(CoreApplicationView^ applicationView)
 {
 	// Register event handlers for app lifecycle. 
-	applicationView->Activated += ref new TypedEventHandler<CoreApplicationView^, IActivatedEventArgs^>(this, &windowApp::OnActivated);
-	CoreApplication::Suspending += ref new EventHandler<SuspendingEventArgs^>(this, &windowApp::OnSuspending);
-  CoreApplication::Resuming += ref new EventHandler<Platform::Object^>(this, &windowApp::OnResuming);
+	applicationView->Activated += ref new TypedEventHandler<CoreApplicationView^, IActivatedEventArgs^>(this, &WindowApp::OnActivated);
+	CoreApplication::Suspending += ref new EventHandler<SuspendingEventArgs^>(this, &WindowApp::OnSuspending);
+  CoreApplication::Resuming += ref new EventHandler<Platform::Object^>(this, &WindowApp::OnResuming);
 
 	// At this point we have access to the device. We can create the device-dependent resources.  
-  m_gameMain = std::make_unique<gameMain>(applicationView);
+  m_GameMain = std::make_unique<GameMain>(applicationView);
 }
 
 // Called when the CoreWindow object is created (or re-created).
-void windowApp::SetWindow(CoreWindow^ window)
+void WindowApp::SetWindow(CoreWindow^ window)
 {
-	window->SizeChanged += ref new TypedEventHandler<CoreWindow^, WindowSizeChangedEventArgs^>(this, &windowApp::OnWindowSizeChanged);
-	window->VisibilityChanged += ref new TypedEventHandler<CoreWindow^, VisibilityChangedEventArgs^>(this, &windowApp::OnVisibilityChanged);
-	window->Closed += ref new TypedEventHandler<CoreWindow^, CoreWindowEventArgs^>(this, &windowApp::OnWindowClosed);
+	window->SizeChanged += ref new TypedEventHandler<CoreWindow^, WindowSizeChangedEventArgs^>(this, &WindowApp::OnWindowSizeChanged);
+	window->VisibilityChanged += ref new TypedEventHandler<CoreWindow^, VisibilityChangedEventArgs^>(this, &WindowApp::OnVisibilityChanged);
+	window->Closed += ref new TypedEventHandler<CoreWindow^, CoreWindowEventArgs^>(this, &WindowApp::OnWindowClosed);
 
 	DisplayInformation^ currentDisplayInformation = DisplayInformation::GetForCurrentView();
-	currentDisplayInformation->DpiChanged += ref new TypedEventHandler<DisplayInformation^, Object^>(this, &windowApp::OnDpiChanged);
-	currentDisplayInformation->OrientationChanged += ref new TypedEventHandler<DisplayInformation^, Object^>(this, &windowApp::OnOrientationChanged);
-	DisplayInformation::DisplayContentsInvalidated += ref new TypedEventHandler<DisplayInformation^, Object^>(this, &windowApp::OnDisplayContentsInvalidated);
+	currentDisplayInformation->DpiChanged += ref new TypedEventHandler<DisplayInformation^, Object^>(this, &WindowApp::OnDpiChanged);
+	currentDisplayInformation->OrientationChanged += ref new TypedEventHandler<DisplayInformation^, Object^>(this, &WindowApp::OnOrientationChanged);
+	DisplayInformation::DisplayContentsInvalidated += ref new TypedEventHandler<DisplayInformation^, Object^>(this, &WindowApp::OnDisplayContentsInvalidated);
 
-  m_gameMain->setWindow(window);
+  m_GameMain->SetWindow(window);
 }
 
 // Initializes scene resources, or loads a previously saved app state.
-void windowApp::Load(Platform::String^ entryPoint)
+void WindowApp::Load(Platform::String^ entryPoint)
 {
-  m_gameMain->load(entryPoint);
+  m_GameMain->Load(entryPoint);
 }
 
 // This method is called after the window becomes active.
-void windowApp::Run()
+void WindowApp::Run()
 {
 	while (!m_windowClosed)
 	{
 		if (m_windowVisible)
 		{
 			CoreWindow::GetForCurrentThread()->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
-
-      m_gameMain->run();
+            m_GameMain->Run();
 		}
 		else
 		{
@@ -86,46 +85,46 @@ void windowApp::Run()
 	}
 }
 
-void windowApp::Uninitialize()
+void WindowApp::Uninitialize()
 {
 }
 
-void windowApp::OnActivated(CoreApplicationView^ applicationView, IActivatedEventArgs^ args)
+void WindowApp::OnActivated(CoreApplicationView^ applicationView, IActivatedEventArgs^ args)
 {
 	// Run() won't start until the CoreWindow is activated.
 	CoreWindow::GetForCurrentThread()->Activate();
 }
 
-void windowApp::OnSuspending(Platform::Object^ sender, SuspendingEventArgs^ args)
+void WindowApp::OnSuspending(Platform::Object^ sender, SuspendingEventArgs^ args)
 {
 }
 
-void windowApp::OnResuming(Platform::Object^ sender, Platform::Object^ args)
+void WindowApp::OnResuming(Platform::Object^ sender, Platform::Object^ args)
 {
 }
 
-void windowApp::OnWindowSizeChanged(CoreWindow^ sender, WindowSizeChangedEventArgs^ args)
+void WindowApp::OnWindowSizeChanged(CoreWindow^ sender, WindowSizeChangedEventArgs^ args)
 {
 }
 
-void windowApp::OnVisibilityChanged(CoreWindow^ sender, VisibilityChangedEventArgs^ args)
+void WindowApp::OnVisibilityChanged(CoreWindow^ sender, VisibilityChangedEventArgs^ args)
 {
 	m_windowVisible = args->Visible;
 }
 
-void windowApp::OnWindowClosed(CoreWindow^ sender, CoreWindowEventArgs^ args)
+void WindowApp::OnWindowClosed(CoreWindow^ sender, CoreWindowEventArgs^ args)
 {
 	m_windowClosed = true;
 }
 
-void windowApp::OnDpiChanged(DisplayInformation^ sender, Object^ args)
+void WindowApp::OnDpiChanged(DisplayInformation^ sender, Object^ args)
 {
 }
 
-void windowApp::OnOrientationChanged(DisplayInformation^ sender, Object^ args)
+void WindowApp::OnOrientationChanged(DisplayInformation^ sender, Object^ args)
 {
 }
 
-void windowApp::OnDisplayContentsInvalidated(DisplayInformation^ sender, Object^ args)
+void WindowApp::OnDisplayContentsInvalidated(DisplayInformation^ sender, Object^ args)
 {
 }

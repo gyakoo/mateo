@@ -1,48 +1,48 @@
 ﻿#pragma once
 #include <engine/stepTimer.h>
 
-namespace engine
+namespace Engine
 {
-    class dxDevice;
-    class renderPipeline;
+    class DxDevice;
+    class RenderPipeline;
 
     [Windows::Foundation::Metadata::WebHostHidden]
-    public ref class base sealed
+    public ref class Base sealed
     {
     public:
-      base(Windows::ApplicationModel::Core::CoreApplicationView^ appView, bool setEventHandlers);
+      Base(Windows::ApplicationModel::Core::CoreApplicationView^ appView, bool setEventHandlers);
 
-      void update();
-      void render();
-      void setWindow(Windows::UI::Core::CoreWindow^ window, bool setEventHandlers);
-      void onAppLoad(Platform::String^ entryPoint);
-      void deviceLost();
-      void deviceRestored();
-      void reloadWindowSizeResources();
+      void Update();
+      void Render();
+      void SetWindow(Windows::UI::Core::CoreWindow^ window, bool setEventHandlers);
+      void OnAppLoad(Platform::String^ entryPoint);
+      void DeviceLost();
+      void DeviceRestored();
+      void ReloadWindowSizeResources();
 
-      int registerRenderPipeline(Platform::String^ pipelineName);
-      void unregisterRenderPipeline(int index);
+      int RegisterRenderPipeline(Platform::String^ pipelineName);
+      void UnregisterRenderPipeline(int index);
 
     private:
       // Application lifecycle event handlers.
-      void onActivated(Windows::ApplicationModel::Core::CoreApplicationView^ applicationView, Windows::ApplicationModel::Activation::IActivatedEventArgs^ args);
-      void onSuspending(Platform::Object^ sender, Windows::ApplicationModel::SuspendingEventArgs^ args);
-      void onResuming(Platform::Object^ sender, Platform::Object^ args);
+      void OnActivated(Windows::ApplicationModel::Core::CoreApplicationView^ applicationView, Windows::ApplicationModel::Activation::IActivatedEventArgs^ args);
+      void OnSuspending(Platform::Object^ sender, Windows::ApplicationModel::SuspendingEventArgs^ args);
+      void OnResuming(Platform::Object^ sender, Platform::Object^ args);
 
       // Window event handlers.
-      void onWindowSizeChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::WindowSizeChangedEventArgs^ args);
-      void onVisibilityChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::VisibilityChangedEventArgs^ args);
-      void onWindowClosed(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::CoreWindowEventArgs^ args);
+      void OnWindowSizeChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::WindowSizeChangedEventArgs^ args);
+      void OnVisibilityChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::VisibilityChangedEventArgs^ args);
+      void OnWindowClosed(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::CoreWindowEventArgs^ args);
 
       // DisplayInformation event handlers.
-      void onDpiChanged(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
-      void onOrientationChanged(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
-      void onDisplayContentsInvalidated(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
+      void OnDpiChanged(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
+      void OnOrientationChanged(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
+      void OnDisplayContentsInvalidated(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
 
     private:
       Platform::Agile<Windows::UI::Core::CoreWindow> m_window;
-      std::unique_ptr<dxDevice> m_dxDevice;
-      stepTimer m_timer;
-      std::vector< std::shared_ptr<renderPipeline> > m_renderPipelines;
+      std::unique_ptr<DxDevice> m_dxDevice;
+      StepTimer m_timer;
+      std::vector< std::shared_ptr<RenderPipeline> > m_renderPipelines;
     };
 }

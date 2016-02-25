@@ -1,34 +1,31 @@
 #pragma once
 
-namespace engine
+namespace Engine
 {
     template<int N>
-    struct resourceId
+    struct ResourceId
     {
         enum { TYPEMASK = 0xff000000, TYPESHIFT = 24, MAXNUMB = ~TYPEMASK }; // 8 bits type, 24 bits number
-        resourceId() { invalidate(); }
-        explicit resourceId(uint32_t _number) { invalidate(); number(_number); }
+        ResourceId() { Invalidate(); }
+        explicit ResourceId(uint32_t _number) { Invalidate(); Number(_number); }
 
-        static inline resourceId<N> createFrom(uint32_t n) { resourceId<N> t; t.id = n; return t; }
-        inline uint8_t   type()const { return  (id&TYPEMASK) >> TYPESHIFT; }
-        inline uint32_t  number()const { return (id&(~TYPEMASK)); }
-        inline void    number(uint32_t n) { id = (id&TYPEMASK) | (n&(~TYPEMASK)); }
-        inline bool    isValid()const 
-        { 
-            return (id&(~TYPEMASK)) != (~TYPEMASK); 
-        }
-        inline void    invalidate() { id = (N << TYPESHIFT) | (~TYPEMASK); }
-        inline bool    operator ==(const resourceId<N>& o) { return id == o.id; }
+        static inline ResourceId<N> CreateFrom(uint32_t n) { ResourceId<N> t; t.id = n; return t; }
+        inline uint8_t   Type()const { return  (id&TYPEMASK) >> TYPESHIFT; }
+        inline uint32_t  Number()const { return (id&(~TYPEMASK)); }
+        inline void    Number(uint32_t n) { id = (id&TYPEMASK) | (n&(~TYPEMASK)); }
+        inline bool    IsValid()const { return (id&(~TYPEMASK)) != (~TYPEMASK); }
+        inline void    Invalidate() { id = (N << TYPESHIFT) | (~TYPEMASK); }
+        inline bool    operator ==(const ResourceId<N>& o) { return id == o.id; }
         inline operator uint32_t() { return id; }
-        static resourceId<N> INVALID() { return resourceId<N>(); } // an invalid id has the 24 lsb to 1 
-        static uint32_t extractType(uint32_t resId) { return (resId&TYPEMASK) >> TYPESHIFT; }
-        static uint32_t extractNumber(uint32_t resId) { return (resId&(~TYPEMASK)); }
+        static ResourceId<N> INVALID() { return ResourceId<N>(); } // an invalid id has the 24 lsb to 1 
+        static uint32_t ExtractType(uint32_t resId) { return (resId&TYPEMASK) >> TYPESHIFT; }
+        static uint32_t ExtractNumber(uint32_t resId) { return (resId&(~TYPEMASK)); }
     private:
         uint32_t  id;
     };
 
 
-    enum resourceTypes
+    enum eResourceType
     {
         // BASE
         ID_GENERIC = 0,
@@ -68,24 +65,26 @@ namespace engine
         ID_BASERESOURCEID_MAX
     };
 
-    typedef resourceId<ID_GENERIC>            idGeneric;
-    typedef resourceId<ID_FILE>               idFile;
-    typedef resourceId<ID_JSON>               idJson;
-    typedef resourceId<ID_LOGWRITER>          idLogWriter;
-    typedef resourceId<ID_RENDERTARGET>       idRenderTarget;
-    typedef resourceId<ID_VERTEXLAYOUT>       idVertexLayout;
-    typedef resourceId<ID_MESHBUFFER>         idMeshBuffer;
-    typedef resourceId<ID_TEXTURE>            idTexture;
-    typedef resourceId<ID_BYTECODE>           idByteCode;
-    typedef resourceId<ID_SHADER>             idShader;
-    typedef resourceId<ID_SAMPLERSTATE>       idSamplerState;
-    typedef resourceId<ID_DEPTHSTENCILSTATE>  idDepthStencilState;
-    typedef resourceId<ID_RASTERIZERSTATE>    idRasterizerState;
-    typedef resourceId<ID_BLENDSTATE>         idBlendState;
-    typedef resourceId<ID_INPUTTRIGGER>       idInputTrigger;
-    typedef resourceId<ID_JOB>                idJob;
-    typedef resourceId<ID_SOUND>              idSound;
-    typedef resourceId<ID_DYNLIB>             idDynLib;
-    typedef resourceId<ID_SOCKET>             idSocket;
+    typedef ResourceId<ID_GENERIC>            IdGeneric;
+    typedef ResourceId<ID_FILE>               IdFile;
+    typedef ResourceId<ID_JSON>               IdJson;
+    typedef ResourceId<ID_LOGWRITER>          IdLogWriter;
+
+    typedef ResourceId<ID_RENDERTARGET>       IdRenderTarget;
+    typedef ResourceId<ID_VERTEXLAYOUT>       IdVertexLayout;
+    typedef ResourceId<ID_MESHBUFFER>         IdMeshBuffer;
+    typedef ResourceId<ID_TEXTURE>            IdTexture;
+    typedef ResourceId<ID_BYTECODE>           IdByteCode;
+    typedef ResourceId<ID_SHADER>             IdShader;
+    typedef ResourceId<ID_SAMPLERSTATE>       IdSamplerState;
+    typedef ResourceId<ID_DEPTHSTENCILSTATE>  IdDepthStencilState;
+    typedef ResourceId<ID_RASTERIZERSTATE>    IdRasterizerState;
+    typedef ResourceId<ID_BLENDSTATE>         IdBlendState;
+
+    typedef ResourceId<ID_INPUTTRIGGER>       IdInputTrigger;
+    typedef ResourceId<ID_JOB>                IdJob;
+    typedef ResourceId<ID_SOUND>              IdSound;
+    typedef ResourceId<ID_DYNLIB>             IdDynLib;
+    typedef ResourceId<ID_SOCKET>             IdSocket;
 
 };

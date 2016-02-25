@@ -1,21 +1,21 @@
 #pragma once
 
-namespace engine
+namespace Engine
 {
-  class stepTimer;
+  class StepTimer;
 
-  class renderPipeline
+  class RenderPipeline
   {
   public:
-    renderPipeline();
-    virtual ~renderPipeline();
+    RenderPipeline();
+    virtual ~RenderPipeline();
 
-    virtual void update(const stepTimer& timer);
-    virtual void render();
+    virtual void Update(const StepTimer& timer);
+    virtual void Render();
 
     virtual void createResources();
     virtual void releaseResources();
-    virtual void reloadWindowSizeResources();
+    virtual void ReloadWindowSizeResources();
   };
 
 };

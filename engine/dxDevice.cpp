@@ -64,10 +64,10 @@ namespace ScreenRotation
 		);
 };
 
-engine::dxDevice* engine::dxDevice::s_instance = nullptr;
+Engine::DxDevice* Engine::DxDevice::s_instance = nullptr;
 
 // Constructor for DeviceResources.
-engine::dxDevice::dxDevice(engine::base^ baseEngine) :
+Engine::DxDevice::DxDevice(Engine::Base^ baseEngine) :
 	m_screenViewport(),
 	m_d3dFeatureLevel(D3D_FEATURE_LEVEL_9_1),
 	m_d3dRenderTargetSize(),
@@ -80,21 +80,21 @@ engine::dxDevice::dxDevice(engine::base^ baseEngine) :
     m_baseEngine(baseEngine)
 {
     // check there's only one instance
-    engine::ThrowIfFailed(dxDevice::s_instance != nullptr ? E_FAIL : S_OK);
-    dxDevice::s_instance = this;
+    Engine::ThrowIfFailed(DxDevice::s_instance != nullptr ? E_FAIL : S_OK);
+    DxDevice::s_instance = this;
 	CreateDeviceIndependentResources();
 	CreateDeviceResources();
 
-    m_factory = std::make_unique<dxDeviceFactory>();
+    m_factory = std::make_unique<DxDeviceFactory>();
 }
 
-engine::dxDevice::~dxDevice()
+Engine::DxDevice::~DxDevice()
 {
-    dxDevice::s_instance = nullptr;
+    DxDevice::s_instance = nullptr;
 }
 
 // Configures resources that don't depend on the Direct3D device.
-void engine::dxDevice::CreateDeviceIndependentResources()
+void Engine::DxDevice::CreateDeviceIndependentResources()
 {
 	// Initialize Direct2D resources.
 	D2D1_FACTORY_OPTIONS options;
@@ -106,7 +106,7 @@ void engine::dxDevice::CreateDeviceIndependentResources()
 #endif
 
 	// Initialize the Direct2D Factory.
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		D2D1CreateFactory(
 			D2D1_FACTORY_TYPE_SINGLE_THREADED,
 			__uuidof(ID2D1Factory3),
@@ -116,7 +116,7 @@ void engine::dxDevice::CreateDeviceIndependentResources()
 		);
 
 	// Initialize the DirectWrite Factory.
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		DWriteCreateFactory(
 			DWRITE_FACTORY_TYPE_SHARED,
 			__uuidof(IDWriteFactory3),
@@ -125,7 +125,7 @@ void engine::dxDevice::CreateDeviceIndependentResources()
 		);
 
 	// Initialize the Windows Imaging Component (WIC) Factory.
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		CoCreateInstance(
 			CLSID_WICImagingFactory2,
 			nullptr,
@@ -136,14 +136,14 @@ void engine::dxDevice::CreateDeviceIndependentResources()
 }
 
 // Configures the Direct3D device, and stores handles to it and the device context.
-void engine::dxDevice::CreateDeviceResources()
+void Engine::DxDevice::CreateDeviceResources()
 {
 	// This flag adds support for surfaces with a different color channel ordering
 	// than the API default. It is required for compatibility with Direct2D.
 	UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
 #if defined(_DEBUG)
-	if (engine::dxHelper::SdkLayersAvailable())
+	if (Engine::DxHelper::SdkLayersAvailable())
 	{
 		// If the project is in a debug build, enable debugging via SDK Layers with this flag.
 		creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -189,7 +189,7 @@ void engine::dxDevice::CreateDeviceResources()
 		// If the initialization fails, fall back to the WARP device.
 		// For more information on WARP, see: 
 		// http://go.microsoft.com/fwlink/?LinkId=286690
-		engine::ThrowIfFailed(
+		Engine::ThrowIfFailed(
 			D3D11CreateDevice(
 				nullptr,
 				D3D_DRIVER_TYPE_WARP, // Create a WARP device instead of a hardware device.
@@ -206,25 +206,25 @@ void engine::dxDevice::CreateDeviceResources()
 	}
 
 	// Store pointers to the Direct3D 11.3 API device and immediate context.
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		device.As(&m_d3dDevice)
 		);
 
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		context.As(&m_d3dContext)
 		);
 
 	// Create the Direct2D device object and a corresponding context.
 	ComPtr<IDXGIDevice3> dxgiDevice;
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		m_d3dDevice.As(&dxgiDevice)
 		);
 
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		m_d2dFactory->CreateDevice(dxgiDevice.Get(), &m_d2dDevice)
 		);
 
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		m_d2dDevice->CreateDeviceContext(
 			D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
 			&m_d2dContext
@@ -233,7 +233,7 @@ void engine::dxDevice::CreateDeviceResources()
 }
 
 // These resources need to be recreated every time the window size is changed.
-void engine::dxDevice::reloadWindowSizeResources()
+void Engine::DxDevice::ReloadWindowSizeResources()
 {
 	// Clear the previous window size specific context.
 	ID3D11RenderTargetView* nullViews[] = {nullptr};
@@ -277,7 +277,7 @@ void engine::dxDevice::reloadWindowSizeResources()
 		}
 		else
 		{
-			engine::ThrowIfFailed(hr);
+			Engine::ThrowIfFailed(hr);
 		}
 	}
 	else
@@ -301,22 +301,22 @@ void engine::dxDevice::reloadWindowSizeResources()
 
 		// This sequence obtains the DXGI factory that was used to create the Direct3D device above.
 		ComPtr<IDXGIDevice3> dxgiDevice;
-		engine::ThrowIfFailed(
+		Engine::ThrowIfFailed(
 			m_d3dDevice.As(&dxgiDevice)
 			);
 
 		ComPtr<IDXGIAdapter> dxgiAdapter;
-		engine::ThrowIfFailed(
+		Engine::ThrowIfFailed(
 			dxgiDevice->GetAdapter(&dxgiAdapter)
 			);
 
 		ComPtr<IDXGIFactory4> dxgiFactory;
-		engine::ThrowIfFailed(
+		Engine::ThrowIfFailed(
 			dxgiAdapter->GetParent(IID_PPV_ARGS(&dxgiFactory))
 			);
 
 		ComPtr<IDXGISwapChain1> swapChain;
-		engine::ThrowIfFailed(
+		Engine::ThrowIfFailed(
 			dxgiFactory->CreateSwapChainForCoreWindow(
 				m_d3dDevice.Get(),
 				reinterpret_cast<IUnknown*>(m_window.Get()),
@@ -325,13 +325,13 @@ void engine::dxDevice::reloadWindowSizeResources()
 				&swapChain
 				)
 			);
-		engine::ThrowIfFailed(
+		Engine::ThrowIfFailed(
 			swapChain.As(&m_swapChain)
 			);
 
 		// Ensure that DXGI does not queue more than one frame at a time. This both reduces latency and
 		// ensures that the application will only render after each VSync, minimizing power consumption.
-		engine::ThrowIfFailed(
+		Engine::ThrowIfFailed(
 			dxgiDevice->SetMaximumFrameLatency(1)
 			);
 	}
@@ -374,17 +374,17 @@ void engine::dxDevice::reloadWindowSizeResources()
 		throw ref new FailureException();
 	}
 
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		m_swapChain->SetRotation(displayRotation)
 		);
 
 	// Create a render target view of the swap chain back buffer.
 	ComPtr<ID3D11Texture2D1> backBuffer;
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		m_swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer))
 		);
 
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		m_d3dDevice->CreateRenderTargetView1(
 			backBuffer.Get(),
 			nullptr,
@@ -403,7 +403,7 @@ void engine::dxDevice::reloadWindowSizeResources()
 		);
 
 	ComPtr<ID3D11Texture2D1> depthStencil;
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		m_d3dDevice->CreateTexture2D1(
 			&depthStencilDesc,
 			nullptr,
@@ -412,7 +412,7 @@ void engine::dxDevice::reloadWindowSizeResources()
 		);
 
 	CD3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc(D3D11_DSV_DIMENSION_TEXTURE2D);
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		m_d3dDevice->CreateDepthStencilView(
 			depthStencil.Get(),
 			&depthStencilViewDesc,
@@ -441,11 +441,11 @@ void engine::dxDevice::reloadWindowSizeResources()
 			);
 
 	ComPtr<IDXGISurface2> dxgiBackBuffer;
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		m_swapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer))
 		);
 
-	engine::ThrowIfFailed(
+	Engine::ThrowIfFailed(
 		m_d2dContext->CreateBitmapFromDxgiSurface(
 			dxgiBackBuffer.Get(),
 			&bitmapProperties,
@@ -458,11 +458,11 @@ void engine::dxDevice::reloadWindowSizeResources()
 
 	// Grayscale text anti-aliasing is recommended for all Windows Store apps.
 	m_d2dContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
-    m_baseEngine->reloadWindowSizeResources();
+    m_baseEngine->ReloadWindowSizeResources();
 }
 
 // Determine the dimensions of the render target and whether it will be scaled down.
-void engine::dxDevice::UpdateRenderTargetSize()
+void Engine::DxDevice::UpdateRenderTargetSize()
 {
 	m_effectiveDpi = m_dpi;
 
@@ -470,8 +470,8 @@ void engine::dxDevice::UpdateRenderTargetSize()
 	// and allow the GPU to scale the output when it is presented.
 	if (!DisplayMetrics::SupportHighResolutions && m_dpi > DisplayMetrics::DpiThreshold)
 	{
-		float width = engine::ConvertDipsToPixels(m_logicalSize.Width, m_dpi);
-		float height = engine::ConvertDipsToPixels(m_logicalSize.Height, m_dpi);
+		float width = Engine::ConvertDipsToPixels(m_logicalSize.Width, m_dpi);
+		float height = Engine::ConvertDipsToPixels(m_logicalSize.Height, m_dpi);
 
 		if (width > DisplayMetrics::WidthThreshold && height > DisplayMetrics::HeightThreshold)
 		{
@@ -481,8 +481,8 @@ void engine::dxDevice::UpdateRenderTargetSize()
 	}
 
 	// Calculate the necessary render target size in pixels.
-	m_outputSize.Width = engine::ConvertDipsToPixels(m_logicalSize.Width, m_effectiveDpi);
-	m_outputSize.Height = engine::ConvertDipsToPixels(m_logicalSize.Height, m_effectiveDpi);
+	m_outputSize.Width = Engine::ConvertDipsToPixels(m_logicalSize.Width, m_effectiveDpi);
+	m_outputSize.Height = Engine::ConvertDipsToPixels(m_logicalSize.Height, m_effectiveDpi);
 
 	// Prevent zero size DirectX content from being created.
 	m_outputSize.Width = max(m_outputSize.Width, 1);
@@ -490,7 +490,7 @@ void engine::dxDevice::UpdateRenderTargetSize()
 }
 
 // This method is called when the CoreWindow is created (or re-created).
-void engine::dxDevice::SetWindow(CoreWindow^ window)
+void Engine::DxDevice::SetWindow(CoreWindow^ window)
 {
 	DisplayInformation^ currentDisplayInformation = DisplayInformation::GetForCurrentView();
 
@@ -501,21 +501,21 @@ void engine::dxDevice::SetWindow(CoreWindow^ window)
 	m_dpi = currentDisplayInformation->LogicalDpi;
 	m_d2dContext->SetDpi(m_dpi, m_dpi);
 
-	reloadWindowSizeResources();
+	ReloadWindowSizeResources();
 }
 
 // This method is called in the event handler for the SizeChanged event.
-void engine::dxDevice::SetLogicalSize(Windows::Foundation::Size logicalSize)
+void Engine::DxDevice::SetLogicalSize(Windows::Foundation::Size logicalSize)
 {
 	if (m_logicalSize != logicalSize)
 	{
 		m_logicalSize = logicalSize;
-		reloadWindowSizeResources();
+		ReloadWindowSizeResources();
 	}
 }
 
 // This method is called in the event handler for the DpiChanged event.
-void engine::dxDevice::SetDpi(float dpi)
+void Engine::DxDevice::SetDpi(float dpi)
 {
 	if (dpi != m_dpi)
 	{
@@ -525,22 +525,22 @@ void engine::dxDevice::SetDpi(float dpi)
 		m_logicalSize = Windows::Foundation::Size(m_window->Bounds.Width, m_window->Bounds.Height);
 
 		m_d2dContext->SetDpi(m_dpi, m_dpi);
-		reloadWindowSizeResources();
+		ReloadWindowSizeResources();
 	}
 }
 
 // This method is called in the event handler for the OrientationChanged event.
-void engine::dxDevice::SetCurrentOrientation(DisplayOrientations currentOrientation)
+void Engine::DxDevice::SetCurrentOrientation(DisplayOrientations currentOrientation)
 {
 	if (m_currentOrientation != currentOrientation)
 	{
 		m_currentOrientation = currentOrientation;
-		reloadWindowSizeResources();
+		ReloadWindowSizeResources();
 	}
 }
 
 // This method is called in the event handler for the DisplayContentsInvalidated event.
-void engine::dxDevice::ValidateDevice()
+void Engine::DxDevice::ValidateDevice()
 {
 	// The D3D Device is no longer valid if the default adapter changed since the device
 	// was created or if the device has been removed.
@@ -548,30 +548,30 @@ void engine::dxDevice::ValidateDevice()
 	// First, get the information for the default adapter from when the device was created.
 
 	ComPtr<IDXGIDevice3> dxgiDevice;
-	engine::ThrowIfFailed(m_d3dDevice.As(&dxgiDevice));
+	Engine::ThrowIfFailed(m_d3dDevice.As(&dxgiDevice));
 
 	ComPtr<IDXGIAdapter> deviceAdapter;
-	engine::ThrowIfFailed(dxgiDevice->GetAdapter(&deviceAdapter));
+	Engine::ThrowIfFailed(dxgiDevice->GetAdapter(&deviceAdapter));
 
 	ComPtr<IDXGIFactory4> deviceFactory;
-	engine::ThrowIfFailed(deviceAdapter->GetParent(IID_PPV_ARGS(&deviceFactory)));
+	Engine::ThrowIfFailed(deviceAdapter->GetParent(IID_PPV_ARGS(&deviceFactory)));
 
 	ComPtr<IDXGIAdapter1> previousDefaultAdapter;
-	engine::ThrowIfFailed(deviceFactory->EnumAdapters1(0, &previousDefaultAdapter));
+	Engine::ThrowIfFailed(deviceFactory->EnumAdapters1(0, &previousDefaultAdapter));
 
 	DXGI_ADAPTER_DESC1 previousDesc;
-	engine::ThrowIfFailed(previousDefaultAdapter->GetDesc1(&previousDesc));
+	Engine::ThrowIfFailed(previousDefaultAdapter->GetDesc1(&previousDesc));
 
 	// Next, get the information for the current default adapter.
 
 	ComPtr<IDXGIFactory4> currentFactory;
-	engine::ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&currentFactory)));
+	Engine::ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&currentFactory)));
 
 	ComPtr<IDXGIAdapter1> currentDefaultAdapter;
-	engine::ThrowIfFailed(currentFactory->EnumAdapters1(0, &currentDefaultAdapter));
+	Engine::ThrowIfFailed(currentFactory->EnumAdapters1(0, &currentDefaultAdapter));
 
 	DXGI_ADAPTER_DESC1 currentDesc;
-	engine::ThrowIfFailed(currentDefaultAdapter->GetDesc1(&currentDesc));
+	Engine::ThrowIfFailed(currentDefaultAdapter->GetDesc1(&currentDesc));
 
 	// If the adapter LUIDs don't match, or if the device reports that it has been removed,
 	// a new D3D device must be created.
@@ -592,22 +592,22 @@ void engine::dxDevice::ValidateDevice()
 }
 
 // Recreate all device resources and set them back to the current state.
-void engine::dxDevice::HandleDeviceLost()
+void Engine::DxDevice::HandleDeviceLost()
 {
 	m_swapChain = nullptr;
 
-    m_baseEngine->deviceLost();
+    m_baseEngine->DeviceLost();
 
 	CreateDeviceResources();
 	m_d2dContext->SetDpi(m_dpi, m_dpi);
-	reloadWindowSizeResources();
+	ReloadWindowSizeResources();
 
-    m_baseEngine->deviceRestored();
+    m_baseEngine->DeviceRestored();
 }
 
 // Call this method when the app suspends. It provides a hint to the driver that the app 
 // is entering an idle state and that temporary buffers can be reclaimed for use by other apps.
-void engine::dxDevice::Trim()
+void Engine::DxDevice::Trim()
 {
 	ComPtr<IDXGIDevice3> dxgiDevice;
 	m_d3dDevice.As(&dxgiDevice);
@@ -616,7 +616,7 @@ void engine::dxDevice::Trim()
 }
 
 // Present the contents of the swap chain to the screen.
-void engine::dxDevice::Present()
+void Engine::DxDevice::Present()
 {
 	// The first argument instructs DXGI to block until VSync, putting the application
 	// to sleep until the next VSync. This ensures we don't waste any cycles rendering
@@ -640,13 +640,13 @@ void engine::dxDevice::Present()
 	}
 	else
 	{
-		engine::ThrowIfFailed(hr);
+		Engine::ThrowIfFailed(hr);
 	}
 }
 
 // This method determines the rotation between the display device's native orientation and the
 // current display orientation.
-DXGI_MODE_ROTATION engine::dxDevice::ComputeDisplayRotation()
+DXGI_MODE_ROTATION Engine::DxDevice::ComputeDisplayRotation()
 {
 	DXGI_MODE_ROTATION rotation = DXGI_MODE_ROTATION_UNSPECIFIED;
 

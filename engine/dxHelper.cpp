@@ -2,11 +2,11 @@
 #include <engine/dxHelper.h>
 #include <engine/dxDevice.h>
 
-using namespace engine;
-using namespace engine::dxHelper;
+using namespace Engine;
+using namespace Engine::DxHelper;
 
 
-int32_t dxHelper::createEmptyTexture2D(int32_t width, int32_t height, DXGI_FORMAT texf, uint32_t bindflags, ID3D11Texture2D** pOutTex)
+int32_t DxHelper::CreateEmptyTexture2D(int32_t width, int32_t height, DXGI_FORMAT texf, uint32_t bindflags, ID3D11Texture2D** pOutTex)
 {
     D3D11_TEXTURE2D_DESC descDepth;
     ZeroMemory(&descDepth, sizeof(descDepth));
@@ -21,10 +21,10 @@ int32_t dxHelper::createEmptyTexture2D(int32_t width, int32_t height, DXGI_FORMA
     descDepth.BindFlags = bindflags;
     descDepth.CPUAccessFlags = 0;
     descDepth.MiscFlags = 0;
-    return dxDevice::getInstance()->GetD3DDevice()->CreateTexture2D(&descDepth, NULL, pOutTex);
+    return DxDevice::getInstance()->GetD3DDevice()->CreateTexture2D(&descDepth, NULL, pOutTex);
 }
 
-int32_t dxHelper::sizeOfFormatElement(DXGI_FORMAT format)
+int32_t DxHelper::SizeOfFormatElement(DXGI_FORMAT format)
 {
     switch (format)
     {

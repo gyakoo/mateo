@@ -2,38 +2,38 @@
 #include <engine/renderPipeline.h>
 #include <engine/stepTimer.h>
 
-namespace engine
+namespace Engine
 {
-  renderPipeline::renderPipeline()
+  RenderPipeline::RenderPipeline()
   {
   }
 
-  renderPipeline::~renderPipeline()
+  RenderPipeline::~RenderPipeline()
   {
       releaseResources();
   }
 
-  void renderPipeline::update(const stepTimer& timer)
+  void RenderPipeline::Update(const StepTimer& timer)
   {
 
   }
 
-  void renderPipeline::render()
+  void RenderPipeline::Render()
   {
 
   }
 
-  void renderPipeline::createResources()
+  void RenderPipeline::createResources()
   {
 
   }
 
-  void renderPipeline::releaseResources()
+  void RenderPipeline::releaseResources()
   {
 
   }
 
-  void renderPipeline::reloadWindowSizeResources()
+  void RenderPipeline::ReloadWindowSizeResources()
   {
 
   }

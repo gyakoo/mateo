@@ -2,14 +2,14 @@
 #include <engine/base.h>
 #include <engine/dxDeviceFactory.h>
 
-namespace engine
+namespace Engine
 {
 	// Controls all the DirectX device resources.
-	class dxDevice
+	class DxDevice
 	{
 	public:
-		dxDevice(engine::base^ baseEngine);
-        ~dxDevice();
+		DxDevice(Engine::Base^ baseEngine);
+        ~DxDevice();
 
 		void SetWindow(Windows::UI::Core::CoreWindow^ window);
 		void SetLogicalSize(Windows::Foundation::Size logicalSize);
@@ -20,8 +20,8 @@ namespace engine
 		void Trim();
 		void Present();
 
-        dxDeviceFactory* getFactory() { return m_factory.get(); }
-        static dxDevice* getInstance() { return s_instance; }
+        DxDeviceFactory* getFactory() { return m_factory.get(); }
+        static DxDevice* getInstance() { return s_instance; }
 
 		// The size of the render target, in pixels.
 		Windows::Foundation::Size	GetOutputSize() const					{ return m_outputSize; }
@@ -52,11 +52,11 @@ namespace engine
 	private:
 		void CreateDeviceIndependentResources();
 		void CreateDeviceResources();
-		void reloadWindowSizeResources();
+		void ReloadWindowSizeResources();
 		void UpdateRenderTargetSize();
 		DXGI_MODE_ROTATION ComputeDisplayRotation();
 
-        static dxDevice* s_instance;
+        static DxDevice* s_instance;
 
 		// Direct3D objects.
 		Microsoft::WRL::ComPtr<ID3D11Device3>			m_d3dDevice;
@@ -80,7 +80,7 @@ namespace engine
 
 		// Cached reference to the Window and the base engine class
 		Platform::Agile<Windows::UI::Core::CoreWindow> m_window;
-        Platform::Agile<engine::base> m_baseEngine;
+        Platform::Agile<Engine::Base> m_baseEngine;
 
 		// Cached device properties.
 		D3D_FEATURE_LEVEL								m_d3dFeatureLevel;
@@ -91,7 +91,7 @@ namespace engine
 		Windows::Graphics::Display::DisplayOrientations	m_currentOrientation;
 		float											m_dpi;
 
-        std::unique_ptr<dxDeviceFactory> m_factory;
+        std::unique_ptr<DxDeviceFactory> m_factory;
 
 		// This is the DPI that will be reported back to the app. It takes into account whether the app supports high resolution screens or not.
 		float m_effectiveDpi;

@@ -3,20 +3,20 @@
 #include <string>
 #include <engine/renderPipeline.h>
 
-namespace engine
+namespace Engine
 {
 	// Renders the current FPS value in the bottom right corner of the screen using Direct2D and DirectWrite.
-	class testRenderPipeline : public renderPipeline
+	class TestRenderPipeline : public RenderPipeline
 	{
 	public:
-        testRenderPipeline();		
+        TestRenderPipeline();		
 
-        virtual void update(const stepTimer& timer);
-        virtual void render();
+        virtual void Update(const StepTimer& timer);
+        virtual void Render();
 
         virtual void createResources();
         virtual void releaseResources();
-        virtual void reloadWindowSizeResources();
+        virtual void ReloadWindowSizeResources();
 
 	private:
 		// Resources related to text rendering.
@@ -27,8 +27,8 @@ namespace engine
 		Microsoft::WRL::ComPtr<IDWriteTextLayout3>      m_textLayout;
 		Microsoft::WRL::ComPtr<IDWriteTextFormat2>      m_textFormat;
 
-        idTexture   m_mytex;
-        idByteCode  m_psByteCode;
-        idShader    m_ps;
+        IdTexture   m_mytex;
+        IdByteCode  m_psByteCode;
+        IdShader    m_ps;
 	};
 }

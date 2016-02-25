@@ -1,15 +1,15 @@
 ﻿#pragma once
 
 #include "pch.h"
-#include <game/gameMain.h>
+#include <game/GameMain.h>
 
-namespace game
+namespace Game
 {
 	// Main entry point for our app. Connects the app with the Windows shell and handles application lifecycle events.
-	ref class windowApp sealed : public Windows::ApplicationModel::Core::IFrameworkView
+	ref class WindowApp sealed : public Windows::ApplicationModel::Core::IFrameworkView
 	{
 	public:
-		windowApp();
+        WindowApp();
 
 		// IFrameworkView Methods.
 		virtual void Initialize(Windows::ApplicationModel::Core::CoreApplicationView^ applicationView);
@@ -35,13 +35,13 @@ namespace game
 		void OnDisplayContentsInvalidated(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
 
 	private:
-    std::unique_ptr<gameMain> m_gameMain;
+        std::unique_ptr<GameMain> m_GameMain;
 		bool m_windowClosed;
 		bool m_windowVisible;
 	};
 }
 
-ref class appSource sealed : Windows::ApplicationModel::Core::IFrameworkViewSource
+ref class WindowAppSource sealed : Windows::ApplicationModel::Core::IFrameworkViewSource
 {
 public:
 	virtual Windows::ApplicationModel::Core::IFrameworkView^ CreateView();

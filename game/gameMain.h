@@ -1,19 +1,19 @@
 ﻿#pragma once
 
 // Renders Direct2D and 3D content on the screen.
-namespace game
+namespace Game
 {
-	class gameMain
+	class GameMain
 	{
 	public:
-		gameMain(Windows::ApplicationModel::Core::CoreApplicationView^ appView);
-		~gameMain();
+		GameMain(Windows::ApplicationModel::Core::CoreApplicationView^ appView);
+		~GameMain();
 
-        void load(Platform::String^ entryPoint);
-        void setWindow(Windows::UI::Core::CoreWindow^ window);
-        bool run();
+        void Load(Platform::String^ entryPoint);
+        void SetWindow(Windows::UI::Core::CoreWindow^ window);
+        bool Run();
 
 	private:
-        Platform::Agile<engine::base> m_engineBase;		
+        Platform::Agile<Engine::Base> m_engineBase;		
 	};
 }

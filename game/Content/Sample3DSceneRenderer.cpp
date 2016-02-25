@@ -3,7 +3,7 @@
 
 #include "..\Common\DirectXHelper.h"
 
-using namespace game;
+using namespace Game;
 
 using namespace DirectX;
 using namespace Windows::Foundation;
@@ -17,11 +17,11 @@ Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceRes
 	m_deviceResources(deviceResources)
 {
 	CreateDeviceDependentResources();
-	reloadWindowSizeResources();
+	ReloadWindowSizeResources();
 }
 
 // Initializes view parameters when the window size changes.
-void Sample3DSceneRenderer::reloadWindowSizeResources()
+void Sample3DSceneRenderer::ReloadWindowSizeResources()
 {
 	Size outputSize = m_deviceResources->GetOutputSize();
 	float aspectRatio = outputSize.Width / outputSize.Height;

@@ -2,13 +2,13 @@
 
 #include <wrl.h>
 
-namespace engine
+namespace Engine
 {
 	// Helper class for animation and simulation timing.
-	class stepTimer
+	class StepTimer
 	{
 	public:
-		stepTimer() : 
+		StepTimer() : 
 			m_elapsedTicks(0),
 			m_totalTicks(0),
 			m_leftOverTicks(0),
@@ -79,7 +79,7 @@ namespace engine
 
 		// Update timer state, calling the specified Update function the appropriate number of times.
 		template<typename TUpdate>
-		void Tick(const TUpdate& update)
+		void Tick(const TUpdate& Update)
 		{
 			// Query the current time.
 			LARGE_INTEGER currentTime;
@@ -131,7 +131,7 @@ namespace engine
 					m_leftOverTicks -= m_targetElapsedTicks;
 					m_frameCount++;
 
-					update();
+					Update();
 				}
 			}
 			else
@@ -142,7 +142,7 @@ namespace engine
 				m_leftOverTicks = 0;
 				m_frameCount++;
 
-				update();
+				Update();
 			}
 
 			// Track the current framerate.

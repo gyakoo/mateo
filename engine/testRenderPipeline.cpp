@@ -4,18 +4,18 @@
 #include <engine/dxDevice.h>
 #include <engine/stepTimer.h>
 
-using namespace engine;
+using namespace Engine;
 using namespace Microsoft::WRL;
 
 // Initializes D2D resources used for text rendering.
-testRenderPipeline::testRenderPipeline()
+TestRenderPipeline::TestRenderPipeline()
 {
 	ZeroMemory(&m_textMetrics, sizeof(DWRITE_TEXT_METRICS));
 
 	// Create device independent resources
 	ComPtr<IDWriteTextFormat> textFormat;
-	engine::ThrowIfFailed(
-		dxDevice::getInstance()->GetDWriteFactory()->CreateTextFormat(
+	Engine::ThrowIfFailed(
+		DxDevice::getInstance()->GetDWriteFactory()->CreateTextFormat(
 			L"Segoe UI",
 			nullptr,
 			DWRITE_FONT_WEIGHT_LIGHT,
@@ -27,23 +27,23 @@ testRenderPipeline::testRenderPipeline()
 			)
 		);
 
-    engine::ThrowIfFailed(
+    Engine::ThrowIfFailed(
 		textFormat.As(&m_textFormat)
 		);
 
-    engine::ThrowIfFailed(
+    Engine::ThrowIfFailed(
 		m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR)
 		);
 
-    engine::ThrowIfFailed(
-		dxDevice::getInstance()->GetD2DFactory()->CreateDrawingStateBlock(&m_stateBlock)
+    Engine::ThrowIfFailed(
+		DxDevice::getInstance()->GetD2DFactory()->CreateDrawingStateBlock(&m_stateBlock)
 		);
 }
 
 // Updates the text to be displayed.
-void testRenderPipeline::update(const stepTimer& timer)
+void TestRenderPipeline::Update(const StepTimer& timer)
 {
-    auto dxDevice = dxDevice::getInstance();
+    auto DxDevice = DxDevice::getInstance();
 
     // Update display text.
 	uint32 fps = timer.GetFramesPerSecond();
@@ -51,8 +51,8 @@ void testRenderPipeline::update(const stepTimer& timer)
 	m_text = (fps > 0) ? std::to_wstring(fps) + L" FPS" : L" - FPS";
 
 	ComPtr<IDWriteTextLayout> textLayout;
-    engine::ThrowIfFailed(
-        dxDevice->GetDWriteFactory()->CreateTextLayout(
+    Engine::ThrowIfFailed(
+        DxDevice->GetDWriteFactory()->CreateTextLayout(
 			m_text.c_str(),
 			(uint32) m_text.length(),
 			m_textFormat.Get(),
@@ -62,39 +62,39 @@ void testRenderPipeline::update(const stepTimer& timer)
 			)
 		);
 
-    engine::ThrowIfFailed(
+    Engine::ThrowIfFailed(
 		textLayout.As(&m_textLayout)
 		);
 
-    engine::ThrowIfFailed(
+    Engine::ThrowIfFailed(
 		m_textLayout->GetMetrics(&m_textMetrics)
 		);
 }
 
 // Renders a frame to the screen.
-void testRenderPipeline::render()
+void TestRenderPipeline::Render()
 {
-    auto dxDevice = dxDevice::getInstance();
+    auto DxDevice = DxDevice::getInstance();
 
     // clear render target
     {
-        auto context = dxDevice->GetD3DDeviceContext();
+        auto context = DxDevice->GetD3DDeviceContext();
 
         // Reset the viewport to target the whole screen.
-        auto viewport = dxDevice->GetScreenViewport();
+        auto viewport = DxDevice->GetScreenViewport();
         context->RSSetViewports(1, &viewport);
 
         // Reset render targets to the screen.
-        ID3D11RenderTargetView *const targets[1] = { dxDevice->GetBackBufferRenderTargetView() };
-        context->OMSetRenderTargets(1, targets, dxDevice->GetDepthStencilView());
+        ID3D11RenderTargetView *const targets[1] = { DxDevice->GetBackBufferRenderTargetView() };
+        context->OMSetRenderTargets(1, targets, DxDevice->GetDepthStencilView());
 
         // Clear the back buffer and depth stencil view.
-        context->ClearRenderTargetView(dxDevice->GetBackBufferRenderTargetView(), DirectX::Colors::CornflowerBlue);
-        context->ClearDepthStencilView(dxDevice->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+        context->ClearRenderTargetView(DxDevice->GetBackBufferRenderTargetView(), DirectX::Colors::CornflowerBlue);
+        context->ClearDepthStencilView(DxDevice->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     }
 
-	ID2D1DeviceContext* context = dxDevice::getInstance()->GetD2DDeviceContext();
-	Windows::Foundation::Size logicalSize = dxDevice::getInstance()->GetLogicalSize();
+	ID2D1DeviceContext* context = DxDevice::getInstance()->GetD2DDeviceContext();
+	Windows::Foundation::Size logicalSize = DxDevice::getInstance()->GetLogicalSize();
 
 	context->SaveDrawingState(m_stateBlock.Get());
 	context->BeginDraw();
@@ -105,9 +105,9 @@ void testRenderPipeline::render()
 		logicalSize.Height - m_textMetrics.height
 		);
 
-	context->SetTransform(screenTranslation * dxDevice::getInstance()->GetOrientationTransform2D());
+	context->SetTransform(screenTranslation * DxDevice::getInstance()->GetOrientationTransform2D());
 
-    engine::ThrowIfFailed(
+    Engine::ThrowIfFailed(
 		m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING)
 		);
 
@@ -122,42 +122,42 @@ void testRenderPipeline::render()
 	HRESULT hr = context->EndDraw();
 	if (hr != D2DERR_RECREATE_TARGET)
 	{
-        engine::ThrowIfFailed(hr);
+        Engine::ThrowIfFailed(hr);
 	}
 
 	context->RestoreDrawingState(m_stateBlock.Get());
 }
 
-void testRenderPipeline::createResources()
+void TestRenderPipeline::createResources()
 {
-    engine::ThrowIfFailed(
-        dxDevice::getInstance()->GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_whiteBrush)
+    Engine::ThrowIfFailed(
+        DxDevice::getInstance()->GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_whiteBrush)
 		);
 
-    auto factory = dxDevice::getInstance()->getFactory();
+    auto factory = DxDevice::getInstance()->getFactory();
     factory->createTexture(L"Content\\stones.jpg")
-        .then([this](idTexture texId) 
+        .then([this](IdTexture texId) 
     {
         m_mytex = texId; 
     });
 
     factory->createShaderByteCode(L"SamplePixelShader.cso")
-        .then([factory, this](idByteCode bcId)
+        .then([factory, this](IdByteCode bcId)
     {
         m_ps = factory->createShader(bcId, SHADER_PIXEL);
     } );
 }
-void testRenderPipeline::releaseResources()
+void TestRenderPipeline::releaseResources()
 {
 	m_whiteBrush.Reset();
 
-    auto factory = dxDevice::getInstance()->getFactory();
+    auto factory = DxDevice::getInstance()->getFactory();
     factory->releaseResource(m_ps);
     factory->releaseResource(m_psByteCode);
     factory->releaseResource(m_mytex);
 }
 
-void testRenderPipeline::reloadWindowSizeResources()
+void TestRenderPipeline::ReloadWindowSizeResources()
 {
 
 }

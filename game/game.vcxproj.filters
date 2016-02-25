@@ -11,16 +11,10 @@
     <ClInclude Include="Content\Sample3DSceneRenderer.h">
       <Filter>Content</Filter>
     </ClInclude>
-    <ClInclude Include="Content\SampleFpsTextRenderer.h">
-      <Filter>Content</Filter>
-    </ClInclude>
     <ClInclude Include="Content\ShaderStructures.h">
       <Filter>Content</Filter>
     </ClInclude>
     <ClCompile Include="Content\Sample3DSceneRenderer.cpp">
-      <Filter>Content</Filter>
-    </ClCompile>
-    <ClCompile Include="Content\SampleFpsTextRenderer.cpp">
       <Filter>Content</Filter>
     </ClCompile>
     <FxCompile Include="Content\SamplePixelShader.hlsl">
@@ -49,14 +43,14 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="gameMain.cpp" />
     <ClCompile Include="pch.cpp" />
-    <ClCompile Include="windowApp.cpp" />
+    <ClCompile Include="GameMain.cpp" />
+    <ClCompile Include="WindowApp.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="gameMain.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="windowApp.h" />
+    <ClInclude Include="GameMain.h" />
+    <ClInclude Include="WindowApp.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\StoreLogo.png">

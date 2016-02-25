@@ -2,7 +2,7 @@
 
 #include <ppltasks.h>	// For create_task
 
-namespace engine
+namespace Engine
 {
 	inline void ThrowIfFailed(HRESULT hr, Platform::String^ msg)
 	{
@@ -58,7 +58,7 @@ namespace engine
 	}
 
 
-    namespace dxHelper
+    namespace DxHelper
     {
 #if defined(_DEBUG)
         // Check for SDK Layer support.
@@ -80,7 +80,7 @@ namespace engine
             return SUCCEEDED(hr);
         }
 #endif
-        int32_t createEmptyTexture2D(int32_t width, int32_t height, DXGI_FORMAT texf, uint32_t bindflags, ID3D11Texture2D** pOutTex);
-        int32_t sizeOfFormatElement(DXGI_FORMAT format);
+        int32_t CreateEmptyTexture2D(int32_t width, int32_t height, DXGI_FORMAT texf, uint32_t bindflags, ID3D11Texture2D** pOutTex);
+        int32_t SizeOfFormatElement(DXGI_FORMAT format);
     };
 }

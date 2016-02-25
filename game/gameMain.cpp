@@ -1,36 +1,36 @@
 ﻿#include "pch.h"
-#include <game/gameMain.h>
+#include <game/GameMain.h>
 
-using namespace game;
+using namespace Game;
 using namespace Windows::Foundation;
 using namespace Windows::System::Threading;
 using namespace Concurrency;
 
-gameMain::gameMain(Windows::ApplicationModel::Core::CoreApplicationView^ appView)
+GameMain::GameMain(Windows::ApplicationModel::Core::CoreApplicationView^ appView)
 {
-  m_engineBase = ref new engine::base(appView, true);
+  m_engineBase = ref new Engine::Base(appView, true);
 
   // test
-  m_engineBase->registerRenderPipeline("testRenderPipeline");
+  m_engineBase->RegisterRenderPipeline("testRenderPipeline");
 }
 
-gameMain::~gameMain()
+GameMain::~GameMain()
 {
 }
 
-void gameMain::setWindow(Windows::UI::Core::CoreWindow^ window)
+void GameMain::SetWindow(Windows::UI::Core::CoreWindow^ window)
 {
-  m_engineBase->setWindow(window, true);
+  m_engineBase->SetWindow(window, true);
 }
 
-bool gameMain::run()
+bool GameMain::Run()
 {
-  m_engineBase->update();
-  m_engineBase->render();
+  m_engineBase->Update();
+  m_engineBase->Render();
   return true;
 }
 
-void gameMain::load(Platform::String^ entryPoint)
+void GameMain::Load(Platform::String^ entryPoint)
 {
-  m_engineBase->onAppLoad(entryPoint);
+  m_engineBase->OnAppLoad(entryPoint);
 }
