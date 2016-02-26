@@ -40,6 +40,7 @@ namespace Engine
         ID_TEXTURE,
         ID_BYTECODE,
         ID_SHADER,
+        ID_CONSTANTBUFFER,
         ID_SAMPLERSTATE,
         ID_DEPTHSTENCILSTATE,
         ID_RASTERIZERSTATE,
@@ -76,6 +77,7 @@ namespace Engine
     typedef ResourceId<ID_TEXTURE>            IdTexture;
     typedef ResourceId<ID_BYTECODE>           IdByteCode;
     typedef ResourceId<ID_SHADER>             IdShader;
+    typedef ResourceId<ID_CONSTANTBUFFER>     IdConstantBuffer;
     typedef ResourceId<ID_SAMPLERSTATE>       IdSamplerState;
     typedef ResourceId<ID_DEPTHSTENCILSTATE>  IdDepthStencilState;
     typedef ResourceId<ID_RASTERIZERSTATE>    IdRasterizerState;

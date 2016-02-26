@@ -1,8 +1,8 @@
-﻿#include "pch.h"
-#include <engine/testRenderPipeline.h>
-#include <engine/dxHelper.h>
-#include <engine/dxDevice.h>
-#include <engine/stepTimer.h>
+﻿#include <Pch.h>
+#include <engine/TestRenderPipeline.h>
+#include <engine/DxHelper.h>
+#include <engine/DxDevice.h>
+#include <engine/StepTimer.h>
 
 using namespace Engine;
 using namespace Microsoft::WRL;
@@ -145,6 +145,9 @@ void TestRenderPipeline::createResources()
         .then([&factory, this](IdByteCode bcId)
     {
         m_ps = factory.createShader(bcId, SHADER_PIXEL);
+
+        auto scb = factory.createConstantBuffer(bcId);
+
     } );
 }
 void TestRenderPipeline::releaseResources()

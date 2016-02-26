@@ -1,11 +1,13 @@
-#include "pch.h"
-#include <engine/dxDeviceFactory.h>
-#include <engine/dxDevice.h>
-#include <engine/dxHelper.h>
+#include <Pch.h>
+#include <engine/DxDeviceFactory.h>
+#include <engine/DxDevice.h>
+#include <engine/DxHelper.h>
 
 using namespace Engine;
 using namespace Concurrency;
 using namespace DirectX;
+
+#define ENGINE_D3DCOMPILER_DLL L"engine\\d3dcompiler_47.dll"
 
 #define DXDEVFACTORY_EMIT_CREATESHADER(typetoken) \
 {\
@@ -15,11 +17,11 @@ using namespace DirectX;
 }
 
 #define DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(typetoken,listtoken) \
-const Dx##typetoken& DxDeviceFactory::lock##typetoken(Id##typetoken id) const \
+Dx##typetoken& DxDeviceFactory::lock##typetoken(Id##typetoken id) \
 {\
     return DxLocker<Dx##typetoken>(listtoken).lock(id);\
 }\
-void DxDeviceFactory::unlock##typetoken(Id##typetoken id) const\
+void DxDeviceFactory::unlock##typetoken(Id##typetoken id)\
 {\
 	DxLocker<Dx##typetoken>(listtoken).unlock(id);\
 }
@@ -47,18 +49,18 @@ void DxDeviceFactory::unlock##typetoken(Id##typetoken id) const\
 	return id;
 
 #define DXDEVFACTORY_EMIT_FILLBUFFER(typetoken) 	\
-	auto meshBuffer = lockMeshBuffer(mbId);\
+	auto& meshBuffer = lockMeshBuffer(mbId);\
 	ThrowIfAssert(meshBuffer.##typetoken##StrideBytes != 0);\
 	D3D11_BOX updateBox = { 0, 0, 0, meshBuffer.##typetoken##StrideBytes*##typetoken##Count, 1, 1 };\
-	DxDevice::GetInstance()->GetD3DDeviceContext()->UpdateSubresource(meshBuffer.##typetoken##Buffer, 0, &updateBox, typetoken##Data, 0, 0);\
+	DxDevice::GetInstance()->GetD3DDeviceContext()->UpdateSubresource(meshBuffer.##typetoken##Buffer.Get(), 0, &updateBox, typetoken##Data, 0, 0);\
 	unlockMeshBuffer(mbId)
 
 #define DXDEVFACTORY_EMIT_MAPBUFFER(typetoken) \
-	auto meshBuffer = lockMeshBuffer(mbId);\
+	auto& meshBuffer = lockMeshBuffer(mbId);\
 	typetoken##Count = meshBuffer.##typetoken##Count;\
 	typetoken##StrideBytes = meshBuffer.##typetoken##StrideBytes;\
 	D3D11_MAPPED_SUBRESOURCE mapped;\
-	ThrowIfFailed(DxDevice::GetInstance()->GetD3DDeviceContext()->Map(meshBuffer.##typetoken##Buffer, 0, mapType, 0, &mapped));\
+	ThrowIfFailed(DxDevice::GetInstance()->GetD3DDeviceContext()->Map(meshBuffer.##typetoken##Buffer.Get(), 0, mapType, 0, &mapped));\
 	*outData = mapped.pData;\
 	unlockMeshBuffer(mbId)
 
@@ -81,17 +83,17 @@ template<typename CONT>
 class DxLocker
 {
 public:
-    DxLocker(const std::vector<CONT>& container)
+    DxLocker(std::vector<CONT>& container)
         : m_cont(container)
     {}
 
     template<typename IDTYPE>
-    const CONT& lock(IDTYPE id)
+    CONT& lock(IDTYPE id)
     {
 		ThrowIfAssert(id.IsValid(), L"id not valid");
 		ThrowIfAssert(id.Number() < m_cont.size(), L"id out of bounds");
         
-		const CONT& retRes = m_cont[id.Number()];
+		CONT& retRes = m_cont[id.Number()];
 		ThrowIfAssert(retRes.lockCount == 0, L"Locked already");
 		++retRes.lockCount;
 		return retRes;
@@ -103,27 +105,35 @@ public:
 		ThrowIfAssert(id.IsValid(), L"id not valid");
 		ThrowIfAssert(id.Number() < m_cont.size(), L"id out of bounds");
 
-		const CONT& retRes = m_cont[id.Number()];
+		CONT& retRes = m_cont[id.Number()];
 		--retRes.lockCount;
 		ThrowIfAssert(retRes.lockCount >= 0, L"Too many unlocks");
 	}
 
-    const std::vector<CONT>& m_cont;
+    std::vector<CONT>& m_cont;
 };
 
 DxDeviceFactory::DxDeviceFactory()
 {
 	createCommonStates();
+
+    // compiler DLL to get the address of the reflector
+    m_d3dDLLCompiler = LoadPackagedLibrary(ENGINE_D3DCOMPILER_DLL, 0);
+    ThrowIfFailed(m_d3dDLLCompiler ? S_OK : E_FAIL, L"Cannot load " ENGINE_D3DCOMPILER_DLL);    
+    m_d3dDLLReflect = (D3DReflectFunc)GetProcAddress(m_d3dDLLCompiler, "D3DReflect");
+    ThrowIfFailed(m_d3dDLLReflect ? S_OK : E_FAIL, L"Cannot get proc address of D3dReflect");
 }
 
 DxDeviceFactory::~DxDeviceFactory()
 {
+    FreeLibrary(m_d3dDLLCompiler);
 	releaseCommonStates();
     ThrowIfAssert(m_renderTargets.empty());
     ThrowIfAssert(m_textures.empty());
     ThrowIfAssert(m_vertexLayouts.empty());
     ThrowIfAssert(m_byteCodes.empty());
     ThrowIfAssert(m_shaders.empty());
+    ThrowIfAssert(m_constantBuffers.empty());
     ThrowIfAssert(m_meshBuffers.empty());
     ThrowIfAssert(m_BlendStates.empty());
     ThrowIfAssert(m_DepthStencilStates.empty());
@@ -157,12 +167,12 @@ IdRenderTarget  DxDeviceFactory::createRenderTarget(int32_t width, int32_t heigh
     if (asDepth)
     {
         ThrowIfFailed(DxHelper::CreateEmptyTexture2D(width, height, texf, D3D11_BIND_DEPTH_STENCIL, &renderTarget.renderTargetDepthStencilTexture));
-        ThrowIfFailed(pd3dDev->CreateDepthStencilView(renderTarget.renderTargetDepthStencilTexture, NULL, &renderTarget.renderTargetDepthStencilView));
+        ThrowIfFailed(pd3dDev->CreateDepthStencilView(renderTarget.renderTargetDepthStencilTexture.Get(), NULL, renderTarget.renderTargetDepthStencilView.GetAddressOf()));
     }
 
     IdRenderTarget retId( (uint32_t)m_renderTargets.size());
-    m_renderTargets.push_back(renderTarget);
 	renderTarget.state = DXSTATE_LOADED;
+	m_renderTargets.push_back(renderTarget);
     return retId;
 }
 
@@ -184,7 +194,7 @@ task<IdTexture> DxDeviceFactory::createTexture(const std::wstring& filename, uin
 
 IdTexture DxDeviceFactory::createTexture(IdRenderTarget rt)
 {
-    auto rtTex = lockRenderTarget(rt);
+    auto& rtTex = lockRenderTarget(rt);
     
 	DxTexture texture;
 	texture.state = DXSTATE_LOADED;
@@ -243,7 +253,7 @@ IdVertexLayout  DxDeviceFactory::createVertexLayout(const std::vector<D3D11_INPU
     ThrowIfFailed(!bcId.IsValid() ? E_FAIL : S_OK);
 
     auto dxDev = DxDevice::GetInstance()->GetD3DDevice();
-    auto byteCode = lockByteCode(bcId);
+    auto& byteCode = lockByteCode(bcId);
 	DxVertexLayout vertexLayout;
 	vertexLayout.state = DXSTATE_LOADED;
     ThrowIfFailed(dxDev->CreateInputLayout(&elements[0], (UINT)elements.size(), byteCode.getPtr(), (UINT)byteCode.getLength(), &vertexLayout.inputLayout) );
@@ -287,7 +297,7 @@ IdShader DxDeviceFactory::createShader(IdByteCode byteCodeId, eDxShaderStage sta
     auto dxDev = DxDevice::GetInstance()->GetD3DDevice();
     DxShader shader;
 
-    auto byteCode = lockByteCode(byteCodeId);
+    auto& byteCode = lockByteCode(byteCodeId);
     switch (stage)
     {
     case SHADER_VERTEX  : DXDEVFACTORY_EMIT_CREATESHADER(VertexShader); break;
@@ -303,6 +313,26 @@ IdShader DxDeviceFactory::createShader(IdByteCode byteCodeId, eDxShaderStage sta
     IdShader shId((uint32_t)m_shaders.size());
     m_shaders.push_back(shader);
     return shId;
+}
+
+IdConstantBuffer DxDeviceFactory::createConstantBuffer(IdByteCode byteCode)
+{
+    Microsoft::WRL::ComPtr<ID3D11ShaderReflection> reflector;
+    
+    // get the bytecode and reflect it
+    auto& bcode = lockByteCode(byteCode);
+    ThrowIfFailed(m_d3dDLLReflect(bcode.getPtr(), bcode.getLength(), IID_ID3D11ShaderReflection, (void**)reflector.GetAddressOf()));
+    unlockByteCode(byteCode);
+
+    // creates a new constant buffer ...
+    IdConstantBuffer cbId((uint32_t)m_constantBuffers.size());
+    m_constantBuffers.push_back(DxConstantBuffer());
+    DxConstantBuffer& cb = m_constantBuffers.back();
+
+    // ...which is initialized with the reflection.
+    cb.CreateFromReflector(reflector.Get());
+
+    return cbId;
 }
 
 IdMeshBuffer DxDeviceFactory::createMeshBuffer(const DxMeshBufferElementDesc* vertexDesc, const DxMeshBufferElementDesc* indexDesc)
@@ -348,7 +378,7 @@ void	DxDeviceFactory::createMeshBufferVertices(IdMeshBuffer mbId, const void* ve
 	ThrowIfAssert(vertexCount!=0, L"Vertex count cannot be 0");
 	ThrowIfAssert(vertexStrideBytes!=0, L"Vertex stride cannot be 0");
 
-	auto meshBuffer = lockMeshBuffer(mbId);
+	auto& meshBuffer = lockMeshBuffer(mbId);
 	createBufferInternal(vertexStrideBytes*vertexCount, D3D11_BIND_VERTEX_BUFFER, vertexData, &meshBuffer.vertexBuffer);
 	meshBuffer.vertexCount = vertexCount;
 	meshBuffer.vertexStrideBytes = vertexStrideBytes;
@@ -361,7 +391,7 @@ void	DxDeviceFactory::createMeshBufferIndices(IdMeshBuffer mbId, const void* ind
 	ThrowIfAssert(indexCount!=0, L"Index count cannot be 0");
 	ThrowIfAssert(indexFormat == 2 || indexFormat == 4, L"Index stride has to be 2 or 4");
 
-	auto meshBuffer = lockMeshBuffer(mbId);
+	auto& meshBuffer = lockMeshBuffer(mbId);
 	createBufferInternal(static_cast<int>(indexFormat) * indexCount, D3D11_BIND_INDEX_BUFFER, indexData, &meshBuffer.indexBuffer);
 	meshBuffer.indexCount = indexCount;
 	meshBuffer.indexStrideBytes = indexFormat;
@@ -385,8 +415,8 @@ void DxDeviceFactory::mapMeshBufferVertices(IdMeshBuffer mbId, uint32_t& vertexC
 
 void DxDeviceFactory::unmapMeshBufferVertices(IdMeshBuffer mbId)
 {
-	auto meshBuffer = lockMeshBuffer(mbId);
-	DxDevice::GetInstance()->GetD3DDeviceContext()->Unmap(meshBuffer.vertexBuffer, 0);
+	auto& meshBuffer = lockMeshBuffer(mbId);
+	DxDevice::GetInstance()->GetD3DDeviceContext()->Unmap(meshBuffer.vertexBuffer.Get(), 0);
 	unlockMeshBuffer(mbId);
 }
 
@@ -397,8 +427,8 @@ void DxDeviceFactory::mapMeshBufferIndices(IdMeshBuffer mbId, uint32_t& indexCou
 
 void DxDeviceFactory::unmapMeshBufferIndices(IdMeshBuffer mbId)
 {
-	auto meshBuffer = lockMeshBuffer(mbId);
-	DxDevice::GetInstance()->GetD3DDeviceContext()->Unmap(meshBuffer.indexBuffer, 0);
+	auto& meshBuffer = lockMeshBuffer(mbId);
+	DxDevice::GetInstance()->GetD3DDeviceContext()->Unmap(meshBuffer.indexBuffer.Get(), 0);
 	unlockMeshBuffer(mbId);
 }
 
@@ -471,12 +501,21 @@ IdSamplerState DxDeviceFactory::createSamplerState(D3D11_FILTER filter, D3D11_TE
 	DXDEVFACTORY_EMIT_STATECREATEFINAL(SamplerState, &desc);
 }
 
+IdRenderTarget DxDeviceFactory::getCommonRenderTarget()
+{
+	return m_commonRenderTarget;
+}
+
 template<typename CONT>
 void releaseResourceInternal(CONT& container, uint32_t n)
 {
 	CONT::value_type& resource = container[n];
-	resource.release();
-	resource.state = DXSTATE_RELEASED;
+    --resource.refCount;
+    if (resource.refCount <= 0)
+    {
+        resource.release();
+        resource.state = DXSTATE_RELEASED;
+    }
 }
 
 void DxDeviceFactory::releaseResource(uint32_t ResourceId)
@@ -493,6 +532,7 @@ void DxDeviceFactory::releaseResource(uint32_t ResourceId)
 	case ID_TEXTURE: releaseResourceInternal(m_textures, resNumber); break;
 	case ID_BYTECODE: releaseResourceInternal(m_byteCodes, resNumber); break;
 	case ID_SHADER: releaseResourceInternal(m_shaders, resNumber); break;
+    case ID_CONSTANTBUFFER: releaseResourceInternal(m_constantBuffers, resNumber); break;
 	case ID_SAMPLERSTATE: releaseResourceInternal(m_SamplerStates, resNumber); break;
 	case ID_DEPTHSTENCILSTATE: releaseResourceInternal(m_DepthStencilStates, resNumber); break;
 	case ID_RASTERIZERSTATE: releaseResourceInternal(m_RasterizerStates, resNumber); break;
@@ -502,25 +542,36 @@ void DxDeviceFactory::releaseResource(uint32_t ResourceId)
 	}
 }
 
-IdBlendState DxDeviceFactory::getCommonBlendState(DxCommonBlendStateType blendStateType) { return m_BlendStatesCommon[blendStateType]; }
-IdDepthStencilState	DxDeviceFactory::getCommonDepthStencilState(DxCommonDepthStencilType depthStencilType) { return m_DepthStencilStatesCommon[depthStencilType]; }
-IdRasterizerState DxDeviceFactory::getCommonRasterizerState(DxCommonRasterizerType rasterizerType) { return m_RasterizerStatesCommon[rasterizerType]; }
-IdSamplerState DxDeviceFactory::getCommonSamplerState(DxCommonSamplerType samplerType) { return m_SamplerStatesCommon[samplerType]; }
+IdBlendState DxDeviceFactory::getCommonBlendState(eDxCommonBlendStateType blendStateType) { return m_BlendStatesCommon[blendStateType]; }
+IdDepthStencilState	DxDeviceFactory::getCommonDepthStencilState(eDxCommonDepthStencilType depthStencilType) { return m_DepthStencilStatesCommon[depthStencilType]; }
+IdRasterizerState DxDeviceFactory::getCommonRasterizerState(eDxCommonRasterizerType rasterizerType) { return m_RasterizerStatesCommon[rasterizerType]; }
+IdSamplerState DxDeviceFactory::getCommonSamplerState(eDxCommonSamplerType samplerType) { return m_SamplerStatesCommon[samplerType]; }
 
 void DxDeviceFactory::createCommonStates()
 {
 	using namespace DirectX;
-	CommonStates commonStates(DxDevice::GetInstance()->GetD3DDevice());
+	auto dxDev = DxDevice::GetInstance();
+	CommonStates commonStates(dxDev->GetD3DDevice());
 	
 	// blend states
 	DXDEVFACTORY_EMIT_CREATECOMMON(BlendState, COMMONBLEND_MAX, &CommonStates::Opaque, &CommonStates::AlphaBlend, &CommonStates::Additive, &CommonStates::NonPremultiplied);
 	DXDEVFACTORY_EMIT_CREATECOMMON(DepthStencilState, COMMONDEPTHSTENCIL_MAX, &CommonStates::DepthNone, &CommonStates::DepthDefault, &CommonStates::DepthRead);
 	DXDEVFACTORY_EMIT_CREATECOMMON(RasterizerState, COMMONRASTERIZER_MAX, &CommonStates::CullNone, &CommonStates::CullClockwise, &CommonStates::CullCounterClockwise, &CommonStates::Wireframe);
 	DXDEVFACTORY_EMIT_CREATECOMMON(SamplerState, COMMONSAMPLER_MAX, &CommonStates::PointWrap, &CommonStates::PointClamp, &CommonStates::LinearWrap, &CommonStates::LinearClamp, &CommonStates::AnisotropicWrap, &CommonStates::AnisotropicClamp );
+
+	// gets a reference to the current render target and depth stencil views
+	DxRenderTarget renderTarget;
+	renderTarget.renderTargetView = dxDev->GetBackBufferRenderTargetView();
+	renderTarget.renderTargetDepthStencilView = dxDev->GetDepthStencilView();
+
+	m_commonRenderTarget.Number((uint32_t)m_renderTargets.size());
+	renderTarget.state = DXSTATE_LOADED;
+	m_renderTargets.push_back(renderTarget);
 }
 
 void DxDeviceFactory::releaseCommonStates()
 {
+	releaseResource(m_commonRenderTarget);
 	for (auto rid : m_BlendStatesCommon) releaseResource(rid);
 	for (auto rid : m_DepthStencilStatesCommon) releaseResource(rid);
 	for (auto rid : m_RasterizerStatesCommon) releaseResource(rid);
@@ -532,6 +583,7 @@ DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(Texture, m_textures);
 DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(VertexLayout, m_vertexLayouts);
 DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(ByteCode, m_byteCodes);
 DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(Shader, m_shaders);
+DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(ConstantBuffer, m_constantBuffers);
 DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(MeshBuffer, m_meshBuffers);
 DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(BlendState, m_BlendStates);
 DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(DepthStencilState, m_DepthStencilStates);

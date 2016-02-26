@@ -22,13 +22,19 @@ namespace Engine
 		}
 	}
 
-	inline void ThrowIfAssert(bool exp, const wchar_t* msg=nullptr)
-	{
-		if (msg)
-			ThrowIfFailed(exp ? S_OK : E_FAIL, ref new	Platform::String(msg));
-		else
-			ThrowIfFailed(exp ? S_OK : E_FAIL);
-	}
+    inline void ThrowIfAssertAlways(bool exp, const wchar_t* msg = nullptr)
+    {
+        if (msg)
+            ThrowIfFailed(exp ? S_OK : E_FAIL, ref new	Platform::String(msg));
+        else
+            ThrowIfFailed(exp ? S_OK : E_FAIL);
+    }
+
+#if defined(_DEBUG) || defined(DEBUG)
+#   define ThrowIfAssert(...) ThrowIfAssertAlways(__VA_ARGS__)
+#else
+#   define ThrowIfAssert(...)
+#endif
 
 	// Function that reads from a binary file asynchronously.
 	inline Concurrency::task<std::vector<byte>> ReadDataAsync(const std::wstring& filename)

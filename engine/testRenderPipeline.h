@@ -1,7 +1,6 @@
 ﻿#pragma once
 
-#include <string>
-#include <engine/renderPipeline.h>
+#include <engine/RenderPipeline.h>
 
 namespace Engine
 {

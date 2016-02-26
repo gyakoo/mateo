@@ -1,6 +1,6 @@
 ﻿#include <pch.h>
-#include <engine/dxHelper.h>
-#include <engine/dxDevice.h>
+#include <engine/DxHelper.h>
+#include <engine/DxDevice.h>
 
 using namespace Engine;
 using namespace Engine::DxHelper;

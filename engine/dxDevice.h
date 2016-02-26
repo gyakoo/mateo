@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include <engine/base.h>
-#include <engine/dxDeviceFactory.h>
+#include <engine/Base.h>
+#include <engine/DxDeviceFactory.h>
 #include <engine/DxDeviceContext.h>
 
 namespace Engine

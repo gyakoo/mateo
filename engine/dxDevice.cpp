@@ -1,6 +1,6 @@
-﻿#include "pch.h"
-#include <engine/dxDevice.h>
-#include <engine/dxHelper.h>
+﻿#include <Pch.h>
+#include <engine/DxDevice.h>
+#include <engine/DxHelper.h>
 
 using namespace D2D1;
 using namespace DirectX;
@@ -486,8 +486,8 @@ void Engine::DxDevice::UpdateRenderTargetSize()
 	m_outputSize.Height = Engine::ConvertDipsToPixels(m_logicalSize.Height, m_effectiveDpi);
 
 	// Prevent zero size DirectX content from being created.
-	m_outputSize.Width = max(m_outputSize.Width, 1);
-	m_outputSize.Height = max(m_outputSize.Height, 1);
+	m_outputSize.Width = std::max(m_outputSize.Width, 1.0f);
+	m_outputSize.Height = std::max(m_outputSize.Height, 1.0f);
 }
 
 // This method is called when the CoreWindow is created (or re-created).

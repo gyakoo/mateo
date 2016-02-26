@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "pch.h"
+#include <Pch.h>
 #include <game/GameMain.h>
 
 namespace Game

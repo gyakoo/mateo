@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include <engine/stepTimer.h>
+#include <engine/StepTimer.h>
 
 namespace Engine
 {

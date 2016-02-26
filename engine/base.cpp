@@ -1,9 +1,9 @@
-﻿#include "pch.h"
-#include "base.h"
-#include <engine/testRenderPipeline.h>
-#include <engine/dxDevice.h>
-#include <engine/dxHelper.h>
-#include <engine/renderPipeline.h>
+﻿#include <Pch.h>
+#include "Base.h"
+#include <engine/TestRenderPipeline.h>
+#include <engine/DxDevice.h>
+#include <engine/DxHelper.h>
+#include <engine/RenderPipeline.h>
 
 using namespace Platform;
 using namespace concurrency;

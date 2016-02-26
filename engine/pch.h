@@ -1,11 +1,13 @@
 ﻿#pragma once
 
+#define NOMINMAX
 #include <collection.h>
 #include <ppltasks.h>
 #include <wrl.h>
 #include <wrl/client.h>
 #include <dxgi1_4.h>
 #include <d3d11_3.h>
+#include <d3d11shader.h>
 #include <d2d1_3.h>
 #include <d2d1effects_2.h>
 #include <dwrite_3.h>
@@ -17,7 +19,7 @@
 #include <concrt.h>
 #include <array>
 
-#include <engine/resourceId.h>
+#include <engine/ResourceId.h>
 
 #include <DirectXTK/Inc/Audio.h>
 #include <DirectXTK/Inc/CommonStates.h>

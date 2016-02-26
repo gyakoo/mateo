@@ -1,6 +1,6 @@
-#include "pch.h"
-#include <engine/renderPipeline.h>
-#include <engine/stepTimer.h>
+#include <Pch.h>
+#include <engine/RenderPipeline.h>
+#include <engine/StepTimer.h>
 
 namespace Engine
 {

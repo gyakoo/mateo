@@ -43,12 +43,12 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="Pch.cpp" />
     <ClCompile Include="GameMain.cpp" />
     <ClCompile Include="WindowApp.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h" />
+    <ClInclude Include="Pch.h" />
     <ClInclude Include="GameMain.h" />
     <ClInclude Include="WindowApp.h" />
   </ItemGroup>
@@ -56,7 +56,7 @@
     <Image Include="Assets\StoreLogo.png">
       <Filter>Assets</Filter>
     </Image>
-    <Image Include="Content\stones.jpg">
+    <Image Include="Content\Stones.jpg">
       <Filter>Assets</Filter>
     </Image>
   </ItemGroup>
@@ -64,6 +64,6 @@
     <AppxManifest Include="Package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="game_TemporaryKey.pfx" />
+    <None Include="Game_TemporaryKey.pfx" />
   </ItemGroup>
 </Project>
