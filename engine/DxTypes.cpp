@@ -11,14 +11,15 @@ DxDeviceContextState::DxDeviceContextState()
 
 void DxConstantBuffer::ConstantBuffer::Release()
 {
-    deviceBuffer = nullptr;
     cpuMemBuffer.resize(0);
 }
 
-void DxConstantBuffer::release()
+void DxConstantBuffer::Release()
 {
     m_buffers.resize(0);
     m_constantsDesc.resize(0);
+    for (auto& db : m_d3dBuffers)
+        DxSafeRelease(db);
 }
 
 int32_t DxConstantBuffer::SetConstantValue(int32_t constantNdx, const float* values, uint32_t count)
@@ -72,6 +73,75 @@ eDxShaderConstantType D3D11DimensionToSCT(D3D_SRV_DIMENSION dim)
     return SCT_NONE;
 }
 
+eDxShaderConstantType D3D11TypeToSCT(const D3D11_SHADER_TYPE_DESC &c)
+{
+    switch (c.Type)
+    {
+    case D3D10_SVT_BOOL:
+        switch (c.Class)
+        {
+        case D3D10_SVC_SCALAR:
+            return SCT_BOOL;
+        case D3D10_SVC_VECTOR:
+            if (c.Columns == 2) return SCT_BOOL2;
+            if (c.Columns == 3) return SCT_BOOL3;
+            return SCT_BOOL4;
+        case D3D10_SVC_MATRIX_ROWS: ///< what to do here?
+        case D3D10_SVC_MATRIX_COLUMNS:
+            return SCT_BOOL4;
+        }
+        return SCT_BOOL;
+    case D3D10_SVT_INT:
+        switch (c.Class)
+        {
+        case D3D10_SVC_SCALAR:
+            return SCT_INT;
+        case D3D10_SVC_VECTOR:
+            if (c.Columns == 2) return SCT_INT2;
+            if (c.Columns == 3) return SCT_INT3;
+            return SCT_INT4;
+        case D3D10_SVC_MATRIX_ROWS: ///< what to do here?
+        case D3D10_SVC_MATRIX_COLUMNS:
+            return SCT_INT4;
+        }
+        return SCT_INT;
+    case D3D10_SVT_FLOAT:
+        switch (c.Class)
+        {
+        case D3D10_SVC_SCALAR:
+            return SCT_FLOAT;
+        case D3D10_SVC_VECTOR:
+            if (c.Columns == 2) return SCT_FLOAT2;
+            if (c.Columns == 3) return SCT_FLOAT3;
+            return SCT_FLOAT4;
+        case D3D10_SVC_MATRIX_ROWS: ///< what to do here?
+        case D3D10_SVC_MATRIX_COLUMNS:
+            if (((c.Columns == 3)) && (c.Rows == 4)) return SCT_FLOAT43;
+            if ((c.Columns == 3) && (c.Rows == 3)) return SCT_FLOAT33;
+            if ((c.Columns == 4) && (c.Rows == 4)) return SCT_FLOAT44;
+            return SCT_NONE;
+        }
+        return SCT_FLOAT;
+    case D3D10_SVT_STRING:
+        return SCT_STRING;
+    case D3D10_SVT_SAMPLER:
+        return SCT_SAMPLER;
+    case D3D10_SVT_TEXTURE:
+    case D3D10_SVT_TEXTURE1D:
+    case D3D10_SVT_TEXTURE2D:
+        return SCT_TEXTURE;
+    case D3D10_SVT_TEXTURE1DARRAY:
+    case D3D10_SVT_TEXTURE2DARRAY:
+        return SCT_TEXTURE2DARRAY;
+    case D3D10_SVT_TEXTURE3D:
+        return SCT_TEXTURE3D;
+    case D3D10_SVT_TEXTURECUBE:
+        return SCT_CUBEMAP;
+    }
+    return SCT_NONE;
+}
+
+
 void DxConstantBuffer::CreateFromReflector(ID3D11ShaderReflection* pReflector)
 {
     // ************************* first pass, only TEXTURES and SAMPLERS at the beginning of array *************************
@@ -95,7 +165,7 @@ void DxConstantBuffer::CreateFromReflector(ID3D11ShaderReflection* pReflector)
 #endif
         shConstant.nameHash = std::hash<std::string>()(resDesc.Name);
         shConstant.index = resDesc.BindPoint;
-        shConstant.size = (int8_t)resDesc.BindCount;
+        shConstant.sizeInBytes = (int8_t)resDesc.BindCount;
         // is it a texture unit or a sampler state?
         shConstant.type = (resDesc.Type == D3D10_SIT_TEXTURE)
             ? (uint16_t)D3D11DimensionToSCT(resDesc.Dimension)
@@ -105,18 +175,8 @@ void DxConstantBuffer::CreateFromReflector(ID3D11ShaderReflection* pReflector)
         m_constantsDesc.push_back(shConstant);
     } // for
 
-/*
-      // ************************* second pass, rest of VARIABLES *************************
-      // create internal dx11 c.buffers array
-    if (noShaderCBs)
-    {
-        cbsCount = noShaderCBs;
-        cbs = new DX11CBuffer[noShaderCBs];
-        // helper array for batch d3d11 api calls
-        arrayOfDX11CBuffers = new ID3D11Buffer*[noShaderCBs];
-        ZeroMemory(arrayOfDX11CBuffers, PtrSize*noShaderCBs);
-    }
-    uint32_t cbIndex = 0;   // current internal cb index
+    // ************************* second pass, rest of VARIABLES *************************  
+    ConstantBuffer cb;
     for (uint32_t i = 0; i < shDesc.BoundResources; ++i)
     {
         D3D11_SHADER_INPUT_BIND_DESC resDesc;
@@ -126,8 +186,9 @@ void DxConstantBuffer::CreateFromReflector(ID3D11ShaderReflection* pReflector)
         ID3D11ShaderReflectionConstantBuffer* pCB = pReflector->GetConstantBufferByName(resDesc.Name);
         D3D11_SHADER_BUFFER_DESC bufDesc; pCB->GetDesc(&bufDesc);
         // internal cbuffers array
-        cbs[cbIndex].index = resDesc.BindPoint; // the real shader bind point index
-        cbs[cbIndex].sizeInBytes = bufDesc.Size;// constant buffer size
+
+        cb.bindPoint = resDesc.BindPoint; // the real shader bind point index
+        cb.sizeInBytes = bufDesc.Size;// constant buffer size
                                                 // filling each variable
         for (uint32_t v = 0; v < bufDesc.Variables; ++v)
         {
@@ -136,29 +197,22 @@ void DxConstantBuffer::CreateFromReflector(ID3D11ShaderReflection* pReflector)
             ID3D11ShaderReflectionType* pVT = pV->GetType();
             D3D11_SHADER_TYPE_DESC typeDesc; pVT->GetDesc(&typeDesc);
 #ifdef _DEBUG
-            strncpy_s(srcCBuff->constants[noCopied].name, varDesc.Name, gyShaderConstant::MAX_CONSTANT_NAME);
-            srcCBuff->constants[noCopied].name[gyShaderConstant::MAX_CONSTANT_NAME - 1] = 0;
+            shConstant.name = varDesc.Name;
 #endif
-            srcCBuff->constants[noCopied].nameHash = gyComputeHash((void*)varDesc.Name, (uint32_t)strlen(varDesc.Name));
-            srcCBuff->constants[noCopied].index = (cbIndex << 24) | (varDesc.StartOffset & 0x00ffffff); // 8bits for internal cb index and 24bits for offset inside
-            srcCBuff->constants[noCopied].type = (int8_t)gyRenderer::Impl::D3D11TypeToSCT(typeDesc);
-            srcCBuff->constants[noCopied].size = (int8_t)varDesc.Size;
-            ++noCopied;
+            shConstant.nameHash = std::hash<std::string>()(varDesc.Name);
+            shConstant.index = (m_buffers.size() << 24) | (varDesc.StartOffset & 0x00ffffff); // 8bits for internal cb index and 24bits for offset inside
+            shConstant.type = (int8_t)D3D11TypeToSCT(typeDesc);
+            shConstant.sizeInBytes = (int8_t)varDesc.Size;
+            ThrowIfFailed(shConstant.IsValid() ? S_OK : E_FAIL, L"Invalid constant info copied");
+            m_constantsDesc.push_back(shConstant);
         }
-        ++cbIndex;
-        R_FAIL_IF(srcCBuff->constants[noCopied - 1].IsInvalid(), "Invalid constant info copied");
+        m_buffers.push_back(cb);
+        
     }//for
 
-     // ****************************************************************************
-    R_FAIL_IF(srcCBuff->constantsCount != noCopied, "No. of constants copied != allocated ones");
-
-    // create internal D3D11 buffers for the CBs (noInternalCBs numbers), if proceed
-    for (uint32_t i = 0; i < cbsCount; ++i)
+    for (auto& cb : m_buffers)
     {
-        if (cbs[i].Create() != 0)
-            GYDEBUGRET("Error creating DX11CBuffer\n", -1);
-        arrayOfDX11CBuffers[i] = cbs[i].d3dBuffer; // just a cache of pointers for convenient dx11 api calls
-    }
-    return R_OK;
-    */
+
+
+    }    
 }

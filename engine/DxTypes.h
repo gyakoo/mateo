@@ -7,7 +7,7 @@ namespace Engine
 	{ \
 		Dx##typetoken() :stateObj(nullptr) {} \
 		Microsoft::WRL::ComPtr<ID3D11##typetoken> stateObj; \
-		void release() { stateObj=nullptr; }\
+		void Release() { stateObj=nullptr; }\
 	}
 
     enum eDxShaderStage
@@ -124,7 +124,7 @@ namespace Engine
 
     struct DxTexture : public DxResource
     {
-        void release()
+        void Release()
         {
             texture = nullptr;
             textureShaderResourceView = nullptr;
@@ -136,7 +136,7 @@ namespace Engine
 
     struct DxRenderTarget : public DxTexture
     {
-        void release()
+        void Release()
         {
             renderTargetView = nullptr;
             renderTargetDepthStencilTexture = nullptr;
@@ -151,7 +151,7 @@ namespace Engine
     struct DxVertexLayout : public DxResource
     {
         DxVertexLayout() : vertexStrideBytes(0) {}
-        void release()
+        void Release()
         {
             inputLayout = nullptr;
         }
@@ -163,19 +163,19 @@ namespace Engine
     struct DxByteCode : public DxResource
     {
         std::shared_ptr< std::vector<byte> > data;
-        void release()
+        void Release()
         {
             data = nullptr;
         }
 
         const void* getPtr() const { return &(*data.get())[0]; }
-        uint32_t getLength() const { return (uint32_t)data->size(); }
+        uint32_t getLength() const { return (uint32_t)data->sizeInBytes(); }
     };
 
     struct DxShader : public DxResource
     {
         DxShader() : stage(SHADER_NONE) {}
-        void release()
+        void Release()
         {
             shader = nullptr;
         }
@@ -188,7 +188,7 @@ namespace Engine
     {
         DxMeshBuffer() : vertexCount(0), indexCount(0)
             , vertexStrideBytes(0), indexStrideBytes(INDEX_16) {}
-        void release()
+        void Release()
         {
             vertexBuffer = nullptr;
             indexBuffer = nullptr;
@@ -209,21 +209,21 @@ namespace Engine
     public:
         struct ConstantBuffer
         {
-            ConstantBuffer(int32_t bIndex=-1) :bufferIndex(bIndex) {}
+            ConstantBuffer() : bindPoint(-1), sizeInBytes(0) {}
             ~ConstantBuffer() { Release(); }
             void Release();
-            size_t GetSizeInBytes() const { return cpuMemBuffer.size()*sizeof(float); }
+            size_t GetSizeInBytes() const { return sizeInBytes; }
 
-            Microsoft::WRL::ComPtr<ID3D11Buffer> deviceBuffer;
             std::vector<float> cpuMemBuffer;
-            int32_t bufferIndex;
+            int32_t bindPoint;
+            uint32_t sizeInBytes;
         };
 
         struct ShaderConstant
         {
-            ShaderConstant() : index(-1), nameHash(0), resNumber(0), type(0), size(0) {}
+            ShaderConstant() : index(-1), nameHash(0), resNumber(0), type(0), sizeInBytes(0) {}
 
-            bool IsValid()const { return index != -1 && type != SCT_NONE && size != 0 && nameHash != 0; }
+            bool IsValid()const { return index != -1 && type != SCT_NONE && sizeInBytes != 0 && nameHash != 0; }
             bool IsTexture()const { return type >= SCT_TEXTURE && type <= SCT_TEXTURE2DARRAY; }
             bool IsSampler()const { return type >= SCT_SAMPLER; }
             bool IsFloatArray()const { return type >= SCT_FLOAT && type <= SCT_FLOAT43; }
@@ -235,11 +235,11 @@ namespace Engine
             int32_t index;
             uint32_t resNumber;   // only used when IsTexture() or IsSampler(). it is the resource number
             uint16_t type;        // eDxShaderConstantType
-            uint16_t size;
+            uint16_t sizeInBytes;
         };
 
     public:
-        void release();
+        void Release();
         void CreateFromReflector(ID3D11ShaderReflection* reflector);
 
         int32_t FindConstantIndexByName(const std::wstring& constantName) const;
@@ -249,11 +249,12 @@ namespace Engine
         int32_t SetConstantValue(int32_t constantNdx, IdTexture texture, uint32_t count = 1);
         int32_t SetConstantValue(int32_t constantNdx, IdSamplerState samplerState, uint32_t count = 1);
 
-        uint32_t GetBuffersCount() const { return (uint32_t)m_buffers.size(); }
-        uint32_t GetConstantsCount() const { return (uint32_t)m_constantsDesc.size(); }
+        uint32_t GetBuffersCount() const { return (uint32_t)m_buffers.sizeInBytes(); }
+        uint32_t GetConstantsCount() const { return (uint32_t)m_constantsDesc.sizeInBytes(); }
         const ShaderConstant& GetConstant(int32_t index) const { return m_constantsDesc[index]; }
 
     protected:
+        std::vector<ID3D11Buffer*> m_d3dBuffers;
         std::vector<ConstantBuffer> m_buffers;
         std::vector<ShaderConstant> m_constantsDesc; // textures at the beginning of this array
     };
