@@ -317,12 +317,13 @@ IdShader DxDeviceFactory::createShader(IdByteCode byteCodeId, eDxShaderStage sta
     return shId;
 }
 
-IdConstantBuffer DxDeviceFactory::createConstantBuffer(IdByteCode byteCode)
+IdConstantBuffer DxDeviceFactory::createConstantBuffer(IdByteCode byteCode, eDxShaderStage stage)
 {
+    ThrowIfAssert(stage != SHADER_NONE);
     Microsoft::WRL::ComPtr<ID3D11ShaderReflection> reflector;
     
     // get the bytecode and reflect it
-    auto& bcode = lockByteCode(byteCode);
+    auto& bcode = lockByteCode(byteCode);    
     ThrowIfFailed(m_d3dDLLReflect(bcode.getPtr(), bcode.getLength(), IID_ID3D11ShaderReflection, (void**)reflector.GetAddressOf()));
     unlockByteCode(byteCode);
 
@@ -330,9 +331,8 @@ IdConstantBuffer DxDeviceFactory::createConstantBuffer(IdByteCode byteCode)
     IdConstantBuffer cbId((uint32_t)m_ConstantBuffers.size());
     m_ConstantBuffers.push_back(DxConstantBuffer());
     DxConstantBuffer& cb = m_ConstantBuffers.back();
-
-    // ...which is initialized with the reflection.
-    cb.CreateFromReflector(reflector.Get());
+    cb.SetStage(stage);
+    cb.CreateFromReflector(reflector.Get()); // ...which is initialized with the reflection.
 
     return cbId;
 }

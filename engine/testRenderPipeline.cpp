@@ -145,9 +145,7 @@ void TestRenderPipeline::createResources()
         .then([&factory, this](IdByteCode bcId)
     {
         m_ps = factory.createShader(bcId, SHADER_PIXEL);
-
-        auto scb = factory.createConstantBuffer(bcId);
-
+        m_psCb = factory.createConstantBuffer(bcId, SHADER_PIXEL);
     } );
 }
 void TestRenderPipeline::releaseResources()
@@ -156,6 +154,7 @@ void TestRenderPipeline::releaseResources()
 
     auto factory = DxDevice::GetInstance()->GetFactory();
     factory.releaseResource(m_ps);
+    factory.releaseResource(m_psCb);
     factory.releaseResource(m_psByteCode);
     factory.releaseResource(m_mytex);
 }

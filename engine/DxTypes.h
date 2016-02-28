@@ -13,6 +13,7 @@ namespace Engine
     enum eDxShaderStage
     {
         SHADER_NONE = -1,
+        SHADER_AUTO = -1,
         SHADER_VERTEX = 0,
         SHADER_HULL,
         SHADER_DOMAIN,
@@ -154,13 +155,13 @@ namespace Engine
 
     struct DxShader : public DxResource
     {
-        DxShader() : stage(SHADER_NONE) {}
+        DxShader() : m_stage(SHADER_NONE) {}
         void Release()
         {
             shader = nullptr;
         }
 
-        eDxShaderStage stage;
+        eDxShaderStage m_stage;
         Microsoft::WRL::ComPtr<ID3D11DeviceChild> shader;
     };
 
@@ -207,7 +208,7 @@ namespace Engine
 
         struct ShaderConstant
         {
-            ShaderConstant() : cbIndexAndOffset(~(-1)), nameHash(0), resNumber(0), type(0), sizeInBytes(0) {}
+            ShaderConstant() : cbIndexAndOffset(~(-1)), nameHash(0), resNumber(0), type(0), sizeInBytes(0){}
 
             bool IsValid()const { return cbIndexAndOffset != -1 && type != SCT_NONE && sizeInBytes != 0 && nameHash != 0; }
             bool IsTexture()const { return type >= SCT_TEXTURE && type <= SCT_TEXTURE2DARRAY; }
@@ -223,8 +224,8 @@ namespace Engine
             uint16_t type;        // eDxShaderConstantType
             uint16_t sizeInBytes;
         };
-
     public:
+        DxConstantBuffer() : m_stage(SHADER_NONE) {}
         void Release();
         void CreateFromReflector(ID3D11ShaderReflection* reflector);
 
@@ -239,12 +240,15 @@ namespace Engine
         uint32_t GetConstantsCount() const { return (uint32_t)m_constants.size(); }
         const ShaderConstant& GetConstant(int32_t cbIndexAndOffset) const { return m_constants[cbIndexAndOffset]; }
 
+        void SetStage(eDxShaderStage stage) { m_stage = stage; }
+        eDxShaderStage GetStage() { return m_stage; }
     protected:
         ConstantBuffer& GetCBIndexAndOffset(uint32_t constantIndex, uint32_t& outOffset);
 
         std::vector<ID3D11Buffer*> m_d3dBuffers;
         std::vector<ConstantBuffer> m_buffers;
         std::vector<ShaderConstant> m_constants; // textures at the beginning of this array
+        eDxShaderStage m_stage;
     };
 
     struct DxMeshBufferElementDesc

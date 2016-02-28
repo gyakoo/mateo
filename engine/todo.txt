@@ -2,7 +2,7 @@
 HIGH
 ====
 * Setting the texture/samplestate constant? now it stores in memory in ShaderConstant::resNumber, but now what?
-
+* Parallel vectors for DxFactory. Since there's Async tasks, one can be modifying a vector while other too.
 
 MEDIUM
 ======
@@ -13,7 +13,8 @@ MEDIUM
 
 LOW
 ===
-* Make a tool to reflect shader bytecodes offline and save the .cso + reflection in a single file that is loaded on runtime.
+* Make a tool to reflect shader byteco
+des offline and save the .cso + reflection in a single file that is loaded on runtime.
   - it will remove the need for the compiler dlls in the package as well as their memory footprint when loaded.
 
 

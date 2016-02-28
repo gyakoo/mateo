@@ -7,6 +7,15 @@ using namespace Engine;
 using namespace Concurrency;
 using namespace DirectX;
 
+#define CONTEXT_STATE_DIFF(name) m_currentState.##name != m_lastState.##name
+#define CONTEXT_EMIT_SET_SHADER(methodPrefix,stype,iface)  \
+    if (CONTEXT_STATE_DIFF(m_shaders[stype]))\
+    {\
+        auto& sh = factory.lockShader(m_currentState.m_shaders[stype]);\
+        context->##methodPrefix##SetShader((iface*)sh.shader.Get(), nullptr, 0);\
+        factory.unlockShader(m_currentState.m_shaders[stype]);\
+    }
+
 template<typename SRCCONT, typename DSTCONT>
 void SetArrayOfElements(SRCCONT& srcCont, DSTCONT& dstCont, bool discardLeft)
 {
@@ -28,25 +37,28 @@ void SetArrayOfElements(SRCCONT& srcCont, DSTCONT& dstCont, bool discardLeft)
 }
 
 DxDeviceContextState::DxDeviceContextState()
-    : m_IAPrimtiveTopology(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
+    : m_IAPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
 {
     ZeroMemory(&m_RSViewport, sizeof(D3D11_VIEWPORT));
 }
 
 bool DxDeviceContextState::operator ==(const DxDeviceContextState& rhs) const
 {
-    return m_RSViewport == rhs.m_RSViewport &&
-        m_RSRasterState == rhs.m_RSRasterState &&
-        m_IAPrimtiveTopology == rhs.m_IAPrimtiveTopology &&
-        m_IAVertexLayout == rhs.m_IAVertexLayout &&
-        m_IAIndexBuffer == rhs.m_IAIndexBuffer &&
+    // try to order from more frequenly changed to less
+    return m_constantBuffers == rhs.m_constantBuffers &&
+        m_shaders == rhs.m_shaders &&
         m_IAVertexBuffers == rhs.m_IAVertexBuffers &&
+        m_IAIndexBuffer == rhs.m_IAIndexBuffer &&
+        m_PSTextures == rhs.m_PSTextures &&
+        m_RSRasterState == rhs.m_RSRasterState &&
+        m_IAPrimitiveTopology == rhs.m_IAPrimitiveTopology &&
+        m_IAVertexLayout == rhs.m_IAVertexLayout &&
         m_PSSamplerStates == rhs.m_PSSamplerStates &&
         m_OMRenderTargets == rhs.m_OMRenderTargets &&
-        m_OMDepthStencilState == rhs.m_OMDepthStencilState &&
         m_OMDepthStencilTarget == rhs.m_OMDepthStencilTarget &&
+        m_OMDepthStencilState == rhs.m_OMDepthStencilState &&
         m_OMBlendState == rhs.m_OMBlendState &&
-        m_Shaders == rhs.m_Shaders;
+        m_RSViewport == rhs.m_RSViewport;
 }
 
 DxDeviceContext::DxDeviceContext(ID3D11DeviceContext* deviceContext)
@@ -132,7 +144,7 @@ void DxDeviceContext::SetInputLayout(IdVertexLayout vertexLayout)
 
 void DxDeviceContext::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY topology)
 {
-	m_currentState.m_IAPrimtiveTopology= topology;
+	m_currentState.m_IAPrimitiveTopology= topology;
 }
 
 void DxDeviceContext::SetVertexBuffer(IdVertexBuffer vertexBuffer, uint32_t slot)
@@ -165,7 +177,7 @@ void DxDeviceContext::SetRasterizerState(IdRasterizerState rasterizerState)
 	m_currentState.m_RSRasterState = rasterizerState;
 }
 
-void DxDeviceContext::SetSamplerState(std::initializer_list<IdSamplerState> samplerStates, bool discardLeft )
+void DxDeviceContext::SetSamplerStates(std::initializer_list<IdSamplerState> samplerStates, bool discardLeft )
 {
 	SetArrayOfElements(samplerStates, m_currentState.m_PSSamplerStates, discardLeft);
 }
@@ -175,29 +187,42 @@ void DxDeviceContext::SetSamplerState(IdSamplerState samplerState, uint32_t slot
 	m_currentState.m_PSSamplerStates[slot] = samplerState;
 }
 
-void DxDeviceContext::SetShader(eDxShaderStage shaderType, IdShader shader)
+void DxDeviceContext::SetTextures(std::initializer_list<IdTexture> textures, bool discardLeft)
 {
-	m_currentState.m_Shaders[shaderType] = shader;
+    SetArrayOfElements(textures, m_currentState.m_PSTextures, discardLeft);
 }
 
-#define CONTEXT_STATE_DIFF(name) m_currentState.##name != m_lastState.##name
-#define CONTEXT_SET_SHADER(methodPrefix,stype,iface)  \
-    if (CONTEXT_STATE_DIFF(m_Shaders[stype]))\
-    {\
-        auto& sh = factory.lockShader(m_currentState.m_Shaders[stype]);\
-        context->##methodPrefix##SetShader((iface*)sh.shader.Get(), nullptr, 0);\
-        factory.unlockShader(m_currentState.m_Shaders[stype]);\
-    }
-
-// only sets the different states
-void DxDeviceContext::ApplyStatesDiff()
+void DxDeviceContext::SetTexture(IdTexture texture, uint32_t slot)
 {
-    if (m_currentState == m_lastState)
-        return;
+    m_currentState.m_PSTextures[slot] = texture;
+}
 
-    ID3D11DeviceContext* context = m_deviceContext.Get();
+
+void DxDeviceContext::SetShader(eDxShaderStage shaderType, IdShader shader)
+{
+	m_currentState.m_shaders[shaderType] = shader;
+}
+
+void DxDeviceContext::SetConstantBuffer(IdConstantBuffer cbuffer, eDxShaderStage stage)
+{
     DxDeviceFactory& factory = DxDevice::GetInstance()->GetFactory();
+    auto& cb = factory.lockConstantBuffer(cbuffer);
+    if (stage == SHADER_AUTO)
+    {
+        stage = cb.GetStage();
+    }
+    else
+    {
+        ThrowIfAssert(stage != cb.GetStage(), L"Passed stage mismatch with ConstantBuffer's");
+    }
+    factory.unlockConstantBuffer(cbuffer);
 
+    ThrowIfAssert(stage != SHADER_AUTO);
+    m_currentState.m_constantBuffers[stage] = cbuffer;
+}
+
+void DxDeviceContext::ApplyRS(ID3D11DeviceContext* context, DxDeviceFactory& factory)
+{
     // RS - VIEWPORT
     if (CONTEXT_STATE_DIFF(m_RSViewport))
     {
@@ -211,17 +236,13 @@ void DxDeviceContext::ApplyStatesDiff()
         context->RSSetState(rs.stateObj.Get());
         factory.unlockRasterizerState(m_currentState.m_RSRasterState);
     }
+}
 
-    // SHADERS
-    CONTEXT_SET_SHADER(VS, SHADER_VERTEX, ID3D11VertexShader);
-    CONTEXT_SET_SHADER(HS, SHADER_HULL, ID3D11HullShader);
-    CONTEXT_SET_SHADER(DS, SHADER_DOMAIN, ID3D11DomainShader);
-    CONTEXT_SET_SHADER(GS, SHADER_GEOMETRY, ID3D11GeometryShader);
-    CONTEXT_SET_SHADER(PS, SHADER_PIXEL, ID3D11PixelShader);
-
+void DxDeviceContext::ApplyIA(ID3D11DeviceContext* context, DxDeviceFactory& factory)
+{
     // IA
-    if (CONTEXT_STATE_DIFF(m_IAPrimtiveTopology))
-        context->IASetPrimitiveTopology(m_currentState.m_IAPrimtiveTopology);
+    if (CONTEXT_STATE_DIFF(m_IAPrimitiveTopology))
+        context->IASetPrimitiveTopology(m_currentState.m_IAPrimitiveTopology);
 
     if (CONTEXT_STATE_DIFF(m_IAVertexLayout))
     {
@@ -254,7 +275,51 @@ void DxDeviceContext::ApplyStatesDiff()
         }
         context->IASetVertexBuffers(0, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT, &d3dBuffers[0], &d3dBufferStrides[0], &d3dBufferOffsets[0]);
     }
+}
 
+void DxDeviceContext::ApplyShaders(ID3D11DeviceContext* context, DxDeviceFactory& factory)
+{
+    // SHADERS
+    CONTEXT_EMIT_SET_SHADER(VS, SHADER_VERTEX, ID3D11VertexShader);
+    CONTEXT_EMIT_SET_SHADER(HS, SHADER_HULL, ID3D11HullShader);
+    CONTEXT_EMIT_SET_SHADER(DS, SHADER_DOMAIN, ID3D11DomainShader);
+    CONTEXT_EMIT_SET_SHADER(GS, SHADER_GEOMETRY, ID3D11GeometryShader);
+    CONTEXT_EMIT_SET_SHADER(PS, SHADER_PIXEL, ID3D11PixelShader);
+}
+
+void DxDeviceContext::ApplyPS(ID3D11DeviceContext* context, DxDeviceFactory& factory)
+{
+    // PS - SAMPLER STATES
+    if (CONTEXT_STATE_DIFF(m_PSSamplerStates))
+    {
+        std::array<ID3D11SamplerState*, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT> d3dSamplers;
+        auto& sampArray = m_currentState.m_PSSamplerStates;
+        IdSamplerState ssId;
+        for (size_t i = 0; i < sampArray.size(); ++i)
+        {
+            ssId = sampArray[i];
+            auto& samplerState = factory.lockSamplerState(ssId);
+            d3dSamplers[i] = samplerState.stateObj.Get();
+            factory.lockSamplerState(ssId);
+        }
+        context->PSSetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, &d3dSamplers[0]);
+    }
+
+    // PS - TEXTURES (we go one-by-one for textures)
+    for (uint32_t i = 0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; ++i)
+    {
+        if (CONTEXT_STATE_DIFF(m_PSTextures[i]))
+        {
+            IdTexture tid = m_currentState.m_PSTextures[i];
+            auto& tex = factory.lockTexture(tid);
+            context->PSSetShaderResources(i, 1, tex.textureShaderResourceView.GetAddressOf());
+            factory.unlockTexture(tid);
+        }
+    }
+}
+
+void DxDeviceContext::ApplyOM(ID3D11DeviceContext* context, DxDeviceFactory& factory)
+{
     // OM - RENDERTARGET + Depth Stencil TARGETS
     if (CONTEXT_STATE_DIFF(m_OMRenderTargets) || CONTEXT_STATE_DIFF(m_OMDepthStencilTarget))
     {
@@ -268,7 +333,7 @@ void DxDeviceContext::ApplyStatesDiff()
             rts[i] = rt.renderTargetView.Get();
             factory.unlockRenderTarget(rtArray[i]);
         }
-        
+
         auto& rtds = factory.lockRenderTarget(m_currentState.m_OMDepthStencilTarget);
         ID3D11DepthStencilView* dsView = rtds.renderTargetDepthStencilView.Get();
         factory.unlockRenderTarget(m_currentState.m_OMDepthStencilTarget);
@@ -278,7 +343,7 @@ void DxDeviceContext::ApplyStatesDiff()
     // OM - BLEND STATE
     if (CONTEXT_STATE_DIFF(m_OMBlendState))
     {
-        auto& bs = factory.lockBlendState(m_currentState.m_OMBlendState);        
+        auto& bs = factory.lockBlendState(m_currentState.m_OMBlendState);
         context->OMSetBlendState(bs.stateObj.Get(), NULL, 0xffffffff);
         factory.unlockBlendState(m_currentState.m_OMBlendState);
     }
@@ -290,6 +355,24 @@ void DxDeviceContext::ApplyStatesDiff()
         context->OMSetDepthStencilState(ds.stateObj.Get(), 0xffffffff);
         factory.unlockDepthStencilState(m_currentState.m_OMDepthStencilState);
     }
+}
+
+// only sets the different states
+void DxDeviceContext::ApplyStatesDiff()
+{
+    // did anything change?
+    if (m_currentState == m_lastState)
+        return;
+
+    // apply each pipeline stage states
+    ID3D11DeviceContext* context = m_deviceContext.Get();
+    DxDeviceFactory& factory = DxDevice::GetInstance()->GetFactory();
+
+    ApplyRS(context, factory);
+    ApplyShaders(context, factory);
+    ApplyIA(context, factory);
+    ApplyPS(context, factory);
+    ApplyOM(context, factory);
     
     // Saving state
     m_lastState = m_currentState;

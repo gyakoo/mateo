@@ -3,6 +3,9 @@
 
 namespace Engine
 {
+    // forwards
+    class DxDeviceFactory;
+
     //
     // DxDeviceContextState
     //
@@ -15,13 +18,14 @@ namespace Engine
         IdRasterizerState m_RSRasterState;
 
         // IA
-        D3D11_PRIMITIVE_TOPOLOGY m_IAPrimtiveTopology;
+        D3D11_PRIMITIVE_TOPOLOGY m_IAPrimitiveTopology;
         IdVertexLayout m_IAVertexLayout;
         IdIndexBuffer m_IAIndexBuffer;
         std::array<IdVertexBuffer, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT> m_IAVertexBuffers;
 
         // PS
         std::array<IdSamplerState, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT> m_PSSamplerStates;
+        std::array<IdTexture, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT> m_PSTextures;
 
         // OM states
         std::array<IdRenderTarget, D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT> m_OMRenderTargets;
@@ -30,7 +34,10 @@ namespace Engine
         IdDepthStencilState m_OMDepthStencilState;
 
         // Shaders
-        std::array<IdShader, SHADER_MAX> m_Shaders;
+        std::array<IdShader, SHADER_MAX> m_shaders;
+
+        // ConsantBuffers
+        std::array<IdConstantBuffer, SHADER_MAX> m_constantBuffers;
 
         bool operator ==(const DxDeviceContextState& rhs) const;
     };
@@ -64,30 +71,30 @@ namespace Engine
 		void SetDepthStencilState(IdDepthStencilState depthStencilState);
 
 		// PS
-		void SetSamplerState(std::initializer_list<IdSamplerState> samplerStates, bool discardLeft=true);
+		void SetSamplerStates(std::initializer_list<IdSamplerState> samplerStates, bool discardLeft=true);
 		void SetSamplerState(IdSamplerState samplerState, uint32_t slot);
+        void SetTextures(std::initializer_list<IdTexture> textures, bool discardLeft = true);
+        void SetTexture(IdTexture texture, uint32_t slot);
 
+        // Shader and Constant Buffers
 		void SetShader(eDxShaderStage shaderType, IdShader shader);
-
-        void BeginMarker(const std::wstring& name);
-        void EndMarker();
-
+        void SetConstantBuffer(IdConstantBuffer cbuffer, eDxShaderStage stage=SHADER_AUTO);
+        
+        // Drawing
         void DrawIndexed(uint32_t indexCount, uint32_t startIndexLocation=0, uint32_t baseVertexLocation=0);
         void Draw(uint32_t vertexCount, uint32_t startVertexLocation = 0);
         void DrawAuto();
 
-        /*
-          // -- getters and operations
-  // -- states
-  void SetVSShaderCB( gyIDShader shId );
-  void SetVSShader( gyIDShader shId );
-  void SetPSShaderCB( gyIDShader shId, bool applyConstants=true, bool applyTextures=true, bool applySamplers=true );
-  void SetPSShader( gyIDShader shId );
-  void SetPSTexture( gyIDTexture tId, uint32_t slot );
+        // Debugging
+        void BeginMarker(const std::wstring& name);
+        void EndMarker();
 
-  void Draw( );
-        */
     private:
+        void ApplyRS(ID3D11DeviceContext* context, DxDeviceFactory& factory);
+        void ApplyIA(ID3D11DeviceContext* context, DxDeviceFactory& factory);
+        void ApplyShaders(ID3D11DeviceContext* context, DxDeviceFactory& factory);
+        void ApplyPS(ID3D11DeviceContext* context, DxDeviceFactory& factory);
+        void ApplyOM(ID3D11DeviceContext* context, DxDeviceFactory& factory);
         void ApplyStatesDiff();
 
         Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_deviceContext;

@@ -29,5 +29,6 @@ namespace Engine
         IdTexture   m_mytex;
         IdByteCode  m_psByteCode;
         IdShader    m_ps;
+        IdConstantBuffer m_psCb;
 	};
 }

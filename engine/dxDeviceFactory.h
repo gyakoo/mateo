@@ -35,8 +35,8 @@ namespace Engine
 		IdVertexLayout  createVertexLayout(const std::vector<D3D11_INPUT_ELEMENT_DESC>& elements, IdByteCode bytecode);
         Concurrency::task<IdByteCode> createShaderByteCode(const std::wstring& filename);
 		IdByteCode      createShaderByteCode(const std::vector<byte>& bytecode);
-		IdShader        createShader(IdByteCode byteCodeId, eDxShaderStage stage);
-        IdConstantBuffer createConstantBuffer(IdByteCode byteCode);
+		IdShader        createShader(IdByteCode byteCodeId, eDxShaderStage m_stage);
+        IdConstantBuffer createConstantBuffer(IdByteCode byteCode, eDxShaderStage m_stage);
         IdVertexBuffer  createVertexBuffer(const DxMeshBufferElementDesc& vertexDesc);
         IdIndexBuffer   createIndexBuffer(const DxMeshBufferElementDesc& indexDesc);
 		IdBlendState		createBlendState(D3D11_BLEND srcBlend, D3D11_BLEND destBlend);
