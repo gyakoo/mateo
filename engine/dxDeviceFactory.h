@@ -5,8 +5,12 @@
         Dx##typetoken& lock##typetoken(Id##typetoken id);\
         void unlock##typetoken(Id##typetoken id);
 
-#define DXDEVFACTORY_EMIT_STATE_ARRAYS(typetoken, count)\
-		std::vector<Dx##typetoken> m_##typetoken##s;\
+#define DXDEVFACTORY_EMIT_STATE_ARRAYS(typetoken)\
+        Dx##typetoken m_##typetoken##Default;\
+		std::vector<Dx##typetoken> m_##typetoken##s;
+
+#define DXDEVFACTORY_EMIT_STATE_ARRAYS_COMMON(typetoken, count)\
+		DXDEVFACTORY_EMIT_STATE_ARRAYS(typetoken) \
 		std::array<Id##typetoken, count> m_##typetoken##sCommon
 
 typedef HRESULT(WINAPI *D3DReflectFunc)(LPCVOID pSrcData,
@@ -33,9 +37,8 @@ namespace Engine
 		IdByteCode      createShaderByteCode(const std::vector<byte>& bytecode);
 		IdShader        createShader(IdByteCode byteCodeId, eDxShaderStage stage);
         IdConstantBuffer createConstantBuffer(IdByteCode byteCode);
-		IdMeshBuffer    createMeshBuffer(const DxMeshBufferElementDesc* vertexDesc=nullptr, const DxMeshBufferElementDesc* indexDesc=nullptr);
-		void			createMeshBufferVertices(IdMeshBuffer mbId, const void* vertexData, uint32_t vertexCount, uint32_t vertexStrideBytes);
-		void			createMeshBufferIndices(IdMeshBuffer mbId, const void* indexData, uint32_t indexCount, eDxIndexFormat indexFormat);
+        IdVertexBuffer  createVertexBuffer(const DxMeshBufferElementDesc& vertexDesc);
+        IdIndexBuffer   createIndexBuffer(const DxMeshBufferElementDesc& indexDesc);
 		IdBlendState		createBlendState(D3D11_BLEND srcBlend, D3D11_BLEND destBlend);
 		IdDepthStencilState	createDepthStencilState(bool enable, bool writeEnable);
 		IdRasterizerState	createRasterizerState(D3D11_CULL_MODE cullMode, D3D11_FILL_MODE fillMode);
@@ -49,12 +52,12 @@ namespace Engine
 		IdSamplerState		getCommonSamplerState(eDxCommonSamplerType samplerType);
 		IdRenderTarget		getCommonRenderTarget();
 
-		void			fillMeshBufferVertices(IdMeshBuffer mbId, const void* vertexData, uint32_t vertexCount);
-		void			fillMeshBufferIndices(IdMeshBuffer mbId, const void* indexData, uint32_t indexCount);
-		void			mapMeshBufferVertices(IdMeshBuffer mbId, uint32_t& outVertexCount, uint32_t& outVertexStrideBytes, void** outDat, D3D11_MAP mapType=D3D11_MAP_WRITE);
-		void			mapMeshBufferIndices(IdMeshBuffer mbId, uint32_t& outIndexCount, uint32_t& outIndexStrideBytes, void** outData, D3D11_MAP mapType = D3D11_MAP_WRITE);
-		void			unmapMeshBufferVertices(IdMeshBuffer mbId);
-		void			unmapMeshBufferIndices(IdMeshBuffer mbId);
+		void fillVertexBuffer(IdVertexBuffer vbId, const DxMeshBufferElementDesc& desc);
+		void fillIndexBuffer(IdIndexBuffer ibId, const DxMeshBufferElementDesc& desc);
+		void mapVertexBuffer(IdVertexBuffer vbId, DxMeshBufferElementDesc* outMapping, D3D11_MAP mapType=D3D11_MAP_WRITE);
+		void mapIndexBuffer(IdIndexBuffer ibId, DxMeshBufferElementDesc* outMapping, D3D11_MAP mapType = D3D11_MAP_WRITE);
+		void unmapVertexBuffer(IdVertexBuffer vbId);
+		void unmapIndexBuffer(IdIndexBuffer ibId);
 
         // Accessing to internal resources 
 		DXDEVFACTORY_EMIT_LOCKUNLOCK_DECL(RenderTarget);
@@ -63,7 +66,8 @@ namespace Engine
 		DXDEVFACTORY_EMIT_LOCKUNLOCK_DECL(VertexLayout);
 		DXDEVFACTORY_EMIT_LOCKUNLOCK_DECL(Shader);
         DXDEVFACTORY_EMIT_LOCKUNLOCK_DECL(ConstantBuffer);
-        DXDEVFACTORY_EMIT_LOCKUNLOCK_DECL(MeshBuffer);
+        DXDEVFACTORY_EMIT_LOCKUNLOCK_DECL(VertexBuffer);
+        DXDEVFACTORY_EMIT_LOCKUNLOCK_DECL(IndexBuffer);
 		DXDEVFACTORY_EMIT_LOCKUNLOCK_DECL(BlendState);
 		DXDEVFACTORY_EMIT_LOCKUNLOCK_DECL(DepthStencilState);
 		DXDEVFACTORY_EMIT_LOCKUNLOCK_DECL(RasterizerState);
@@ -74,17 +78,18 @@ namespace Engine
 		void releaseCommonStates();
 
 	protected:
-        std::vector<DxRenderTarget> m_renderTargets;
-        std::vector<DxTexture> m_textures;
-        std::vector<DxVertexLayout> m_vertexLayouts;
-        std::vector<DxByteCode> m_byteCodes;
-        std::vector<DxShader> m_shaders;
-        std::vector<DxConstantBuffer> m_constantBuffers;
-        std::vector<DxMeshBuffer> m_meshBuffers;
-		DXDEVFACTORY_EMIT_STATE_ARRAYS(BlendState, COMMONBLEND_MAX);
-		DXDEVFACTORY_EMIT_STATE_ARRAYS(DepthStencilState, COMMONDEPTHSTENCIL_MAX);
-		DXDEVFACTORY_EMIT_STATE_ARRAYS(RasterizerState, COMMONRASTERIZER_MAX);
-		DXDEVFACTORY_EMIT_STATE_ARRAYS(SamplerState, COMMONSAMPLER_MAX);
+        DXDEVFACTORY_EMIT_STATE_ARRAYS(RenderTarget);
+        DXDEVFACTORY_EMIT_STATE_ARRAYS(Texture);
+        DXDEVFACTORY_EMIT_STATE_ARRAYS(VertexLayout);
+        DXDEVFACTORY_EMIT_STATE_ARRAYS(ByteCode);
+        DXDEVFACTORY_EMIT_STATE_ARRAYS(Shader);
+        DXDEVFACTORY_EMIT_STATE_ARRAYS(ConstantBuffer);
+        DXDEVFACTORY_EMIT_STATE_ARRAYS(VertexBuffer);
+        DXDEVFACTORY_EMIT_STATE_ARRAYS(IndexBuffer);
+		DXDEVFACTORY_EMIT_STATE_ARRAYS_COMMON(BlendState, COMMONBLEND_MAX);
+		DXDEVFACTORY_EMIT_STATE_ARRAYS_COMMON(DepthStencilState, COMMONDEPTHSTENCIL_MAX);
+		DXDEVFACTORY_EMIT_STATE_ARRAYS_COMMON(RasterizerState, COMMONRASTERIZER_MAX);
+		DXDEVFACTORY_EMIT_STATE_ARRAYS_COMMON(SamplerState, COMMONSAMPLER_MAX);
 		IdRenderTarget m_commonRenderTarget;
         HMODULE m_d3dDLLCompiler;
         D3DReflectFunc m_d3dDLLReflect;

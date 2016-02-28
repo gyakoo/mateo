@@ -1,9 +1,13 @@
 ﻿#pragma once
 
 #include <ppltasks.h>	// For create_task
+#include <engine/DxTypes.h>
 
 namespace Engine
 {
+    // forward
+    class DxDeviceContext;
+
 	inline void ThrowIfFailed(HRESULT hr, Platform::String^ msg)
 	{
 		if (FAILED(hr))
@@ -30,10 +34,20 @@ namespace Engine
             ThrowIfFailed(exp ? S_OK : E_FAIL);
     }
 
+    struct DxMarkerScoped
+    {
+        DxMarkerScoped(DxDeviceContext* ctx, const std::wstring& name);
+        ~DxMarkerScoped();
+
+        DxDeviceContext* context;
+    };
+
 #if defined(_DEBUG) || defined(DEBUG)
 #   define ThrowIfAssert(...) ThrowIfAssertAlways(__VA_ARGS__)
+#   define DX_MARKER_SCOPED(context, name) DxMarkerScoped(context, name)
 #else
 #   define ThrowIfAssert(...)
+#   define DX_MARKER_SCOPED(context, name)
 #endif
 
 #define ThrowNotImplemented() ThrowIfAssertAlways(false, L"Not Implemented");
@@ -90,5 +104,7 @@ namespace Engine
 #endif
         int32_t CreateEmptyTexture2D(int32_t width, int32_t height, DXGI_FORMAT texf, uint32_t bindflags, ID3D11Texture2D** pOutTex);
         int32_t SizeOfFormatElement(DXGI_FORMAT format);
+        eDxShaderConstantType D3D11DimensionToSCT(D3D_SRV_DIMENSION dim);
+        eDxShaderConstantType D3D11TypeToSCT(const D3D11_SHADER_TYPE_DESC &c);
     };
 }

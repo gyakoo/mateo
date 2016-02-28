@@ -15,3 +15,9 @@ LOW
 ===
 * Make a tool to reflect shader bytecodes offline and save the .cso + reflection in a single file that is loaded on runtime.
   - it will remove the need for the compiler dlls in the package as well as their memory footprint when loaded.
+
+
+REFERENCES
+===========
+
+http://seanmiddleditch.com/direct3d-11-debug-api-tricks/  (dx11 DEBUGGING TECHNIQUES)

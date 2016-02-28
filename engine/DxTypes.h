@@ -36,6 +36,12 @@ namespace Engine
         INDEX_32 = 4
     };
 
+    enum eDxGeometryBufferType
+    {
+        GEOMTYPE_VERTEXBUFFER,
+        GEOMTYPE_INDEXBUFFER
+    };
+
     enum eDxShaderConstantType
     {
         // Do not modify number/orders!
@@ -84,32 +90,6 @@ namespace Engine
         COMMONSAMPLER_ANISOWRAP, 
         COMMONSAMPLER_ANISOCLAMP, 
         COMMONSAMPLER_MAX 
-    };
-
-    struct DxDeviceContextState
-    {
-        DxDeviceContextState();
-
-        // RS
-        D3D11_VIEWPORT m_RSViewport;
-        IdRasterizerState m_RSRasterState;
-
-        // IA
-        D3D11_PRIMITIVE_TOPOLOGY m_IAManualPrimitiveTopology;
-        IdVertexLayout m_IAVertexLayout;
-        IdMeshBuffer m_IAIndexBuffer;
-        std::array<IdMeshBuffer, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT> m_IAVertexBuffers;
-
-        // PS
-        std::array<IdSamplerState, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT> m_PSSamplerStates;
-
-        // OM states
-        std::array<IdRenderTarget, D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT> m_OMRenderTargets;
-        IdRenderTarget m_OMDepthStencilTarget;
-        IdBlendState m_OMBlendState;
-        IdDepthStencilState m_OMDepthStencilState;
-
-        std::array<IdShader, SHADER_MAX> m_shaders;
     };
 
     struct DxResource
@@ -184,26 +164,31 @@ namespace Engine
         Microsoft::WRL::ComPtr<ID3D11DeviceChild> shader;
     };
 
-    struct DxMeshBuffer : public DxResource
+    //
+    // DxGeometryBuffer
+    //
+    template<eDxGeometryBufferType GT>
+    struct DxGeometryBuffer : public DxResource
     {
-        DxMeshBuffer() : vertexCount(0), indexCount(0)
-            , vertexStrideBytes(0), indexStrideBytes(INDEX_16) {}
+        enum { GEOM_TYPE = GT };
+        DxGeometryBuffer() : count(0), strideBytes(0) { }
         void Release()
         {
-            vertexBuffer = nullptr;
-            indexBuffer = nullptr;
+            buffer = nullptr;
         }
 
-        Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
-
-        uint32_t vertexCount;
-        uint32_t indexCount;
-
-        uint32_t vertexStrideBytes;
-        eDxIndexFormat indexStrideBytes;
+        Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
+        uint32_t count;
+        uint32_t strideBytes;
     };
 
+    typedef DxGeometryBuffer<GEOMTYPE_VERTEXBUFFER> DxVertexBuffer;
+
+    typedef DxGeometryBuffer<GEOMTYPE_INDEXBUFFER> DxIndexBuffer;
+
+    //
+    // DxConstantBuffer
+    //
     class DxConstantBuffer : public DxResource
     {
     public:
@@ -264,9 +249,11 @@ namespace Engine
 
     struct DxMeshBufferElementDesc
     {
-        const void* data;
+        void* data;
         uint32_t count;
         uint32_t strideBytes;
+
+        bool IsValid()const { return data != nullptr && count > 0 && strideBytes > 0; }
     };
 
     DXDEVFACTORY_EMIT_STATE_DECL(BlendState);

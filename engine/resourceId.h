@@ -15,7 +15,7 @@ namespace Engine
         inline void    Number(uint32_t n) { id = (id&TYPEMASK) | (n&(~TYPEMASK)); }
         inline bool    IsValid()const { return (id&(~TYPEMASK)) != (~TYPEMASK); }
         inline void    Invalidate() { id = (N << TYPESHIFT) | (~TYPEMASK); }
-        inline bool    operator ==(const ResourceId<N>& o) { return id == o.id; }
+        inline bool    operator ==(const ResourceId<N>& o) const { return id == o.id; }
         inline operator uint32_t() { return id; }
         static ResourceId<N> INVALID() { return ResourceId<N>(); } // an invalid id has the 24 lsb to 1 
         static uint32_t ExtractType(uint32_t resId) { return (resId&TYPEMASK) >> TYPESHIFT; }
@@ -36,7 +36,8 @@ namespace Engine
         // RENDERER
         ID_RENDERTARGET,
         ID_VERTEXLAYOUT,
-        ID_MESHBUFFER,
+        ID_VERTEXBUFFER,
+        ID_INDEXBUFFER,
         ID_TEXTURE,
         ID_BYTECODE,
         ID_SHADER,
@@ -73,7 +74,8 @@ namespace Engine
 
     typedef ResourceId<ID_RENDERTARGET>       IdRenderTarget;
     typedef ResourceId<ID_VERTEXLAYOUT>       IdVertexLayout;
-    typedef ResourceId<ID_MESHBUFFER>         IdMeshBuffer;
+    typedef ResourceId<ID_VERTEXBUFFER>       IdVertexBuffer;
+    typedef ResourceId<ID_INDEXBUFFER>        IdIndexBuffer;
     typedef ResourceId<ID_TEXTURE>            IdTexture;
     typedef ResourceId<ID_BYTECODE>           IdByteCode;
     typedef ResourceId<ID_SHADER>             IdShader;

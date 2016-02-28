@@ -96,6 +96,7 @@ namespace Engine
         std::unique_ptr<DxDeviceFactory> m_factory;
         std::unique_ptr<DxDeviceContext> m_defaultContext;
 
+
 		// This is the DPI that will be reported back to the app. It takes into account whether the app supports high resolution screens or not.
 		float m_effectiveDpi;
 

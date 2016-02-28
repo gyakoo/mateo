@@ -1,10 +1,10 @@
 ﻿#include <pch.h>
 #include <engine/DxHelper.h>
 #include <engine/DxDevice.h>
+#include <engine/DxDeviceContext.h>
 
 using namespace Engine;
 using namespace Engine::DxHelper;
-
 
 int32_t DxHelper::CreateEmptyTexture2D(int32_t width, int32_t height, DXGI_FORMAT texf, uint32_t bindflags, ID3D11Texture2D** pOutTex)
 {
@@ -26,6 +26,7 @@ int32_t DxHelper::CreateEmptyTexture2D(int32_t width, int32_t height, DXGI_FORMA
 
 int32_t DxHelper::SizeOfFormatElement(DXGI_FORMAT format)
 {
+
     switch (format)
     {
     case DXGI_FORMAT_R32G32B32A32_TYPELESS:
@@ -147,4 +148,105 @@ int32_t DxHelper::SizeOfFormatElement(DXGI_FORMAT format)
     return 0;
 }
 
+eDxShaderConstantType DxHelper::D3D11DimensionToSCT(D3D_SRV_DIMENSION dim)
+{
+    switch (dim)
+    {
+    case D3D11_SRV_DIMENSION_BUFFER:
+    case D3D11_SRV_DIMENSION_TEXTURE1D:
+    case D3D11_SRV_DIMENSION_TEXTURE2D:
+    case D3D11_SRV_DIMENSION_TEXTURE2DMS:
+        return SCT_TEXTURE;
+    case D3D11_SRV_DIMENSION_TEXTURE1DARRAY:
+    case D3D11_SRV_DIMENSION_TEXTURE2DARRAY:
+    case D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY:
+        return SCT_TEXTURE2DARRAY;
+    case D3D11_SRV_DIMENSION_TEXTURE3D:
+        return SCT_TEXTURE3D;
+    case D3D11_SRV_DIMENSION_TEXTURECUBE:
+        return SCT_CUBEMAP;
+    }
+    return SCT_NONE;
+}
+
+eDxShaderConstantType DxHelper::D3D11TypeToSCT(const D3D11_SHADER_TYPE_DESC &c)
+{
+    switch (c.Type)
+    {
+    case D3D10_SVT_BOOL:
+        switch (c.Class)
+        {
+        case D3D10_SVC_SCALAR:
+            return SCT_BOOL;
+        case D3D10_SVC_VECTOR:
+            if (c.Columns == 2) return SCT_BOOL2;
+            if (c.Columns == 3) return SCT_BOOL3;
+            return SCT_BOOL4;
+        case D3D10_SVC_MATRIX_ROWS: ///< what to do here?
+        case D3D10_SVC_MATRIX_COLUMNS:
+            return SCT_BOOL4;
+        }
+        return SCT_BOOL;
+    case D3D10_SVT_INT:
+        switch (c.Class)
+        {
+        case D3D10_SVC_SCALAR:
+            return SCT_INT;
+        case D3D10_SVC_VECTOR:
+            if (c.Columns == 2) return SCT_INT2;
+            if (c.Columns == 3) return SCT_INT3;
+            return SCT_INT4;
+        case D3D10_SVC_MATRIX_ROWS: ///< what to do here?
+        case D3D10_SVC_MATRIX_COLUMNS:
+            return SCT_INT4;
+        }
+        return SCT_INT;
+    case D3D10_SVT_FLOAT:
+        switch (c.Class)
+        {
+        case D3D10_SVC_SCALAR:
+            return SCT_FLOAT;
+        case D3D10_SVC_VECTOR:
+            if (c.Columns == 2) return SCT_FLOAT2;
+            if (c.Columns == 3) return SCT_FLOAT3;
+            return SCT_FLOAT4;
+        case D3D10_SVC_MATRIX_ROWS: ///< what to do here?
+        case D3D10_SVC_MATRIX_COLUMNS:
+            if (((c.Columns == 3)) && (c.Rows == 4)) return SCT_FLOAT43;
+            if ((c.Columns == 3) && (c.Rows == 3)) return SCT_FLOAT33;
+            if ((c.Columns == 4) && (c.Rows == 4)) return SCT_FLOAT44;
+            return SCT_NONE;
+        }
+        return SCT_FLOAT;
+    case D3D10_SVT_STRING:
+        return SCT_STRING;
+    case D3D10_SVT_SAMPLER:
+        return SCT_SAMPLER;
+    case D3D10_SVT_TEXTURE:
+    case D3D10_SVT_TEXTURE1D:
+    case D3D10_SVT_TEXTURE2D:
+        return SCT_TEXTURE;
+    case D3D10_SVT_TEXTURE1DARRAY:
+    case D3D10_SVT_TEXTURE2DARRAY:
+        return SCT_TEXTURE2DARRAY;
+    case D3D10_SVT_TEXTURE3D:
+        return SCT_TEXTURE3D;
+    case D3D10_SVT_TEXTURECUBE:
+        return SCT_CUBEMAP;
+    }
+    return SCT_NONE;
+}
+
+
+
+DxMarkerScoped::DxMarkerScoped(DxDeviceContext* ctx, const std::wstring& name)
+    : context(ctx)
+{
+    ctx->BeginMarker(name);
+}
+
+DxMarkerScoped::~DxMarkerScoped()
+{
+    context->EndMarker();
+}
 

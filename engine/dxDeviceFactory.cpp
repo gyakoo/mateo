@@ -16,14 +16,14 @@ using namespace DirectX;
     shader.shader = pSh;\
 }
 
-#define DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(typetoken,listtoken) \
+#define DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(typetoken) \
 Dx##typetoken& DxDeviceFactory::lock##typetoken(Id##typetoken id) \
 {\
-    return DxLocker<Dx##typetoken>(listtoken).lock(id);\
+    return DxLocker<Dx##typetoken>(m_##typetoken##s).lock(id,m_##typetoken##Default);\
 }\
 void DxDeviceFactory::unlock##typetoken(Id##typetoken id)\
 {\
-	DxLocker<Dx##typetoken>(listtoken).unlock(id);\
+	DxLocker<Dx##typetoken>(m_##typetoken##s).unlock(id);\
 }
 
 #define DXDEVFACTORY_EMIT_CREATECOMMON(typetoken, count, ...) \
@@ -48,21 +48,20 @@ void DxDeviceFactory::unlock##typetoken(Id##typetoken id)\
 	m_##typetoken##s.push_back(state);\
 	return id;
 
-#define DXDEVFACTORY_EMIT_FILLBUFFER(typetoken) 	\
-	auto& meshBuffer = lockMeshBuffer(mbId);\
-	ThrowIfAssert(meshBuffer.##typetoken##StrideBytes != 0);\
-	D3D11_BOX updateBox = { 0, 0, 0, meshBuffer.##typetoken##StrideBytes*##typetoken##Count, 1, 1 };\
-	DxDevice::GetInstance()->GetD3DDeviceContext()->UpdateSubresource(meshBuffer.##typetoken##Buffer.Get(), 0, &updateBox, typetoken##Data, 0, 0);\
-	unlockMeshBuffer(mbId)
+#define DXDEVFACTORY_EMIT_FILLBUFFER(typetoken,_id) 	\
+	auto& buffer = lock##typetoken##Buffer(_id);\
+	D3D11_BOX updateBox = { 0, 0, 0, buffer.strideBytes * buffer.count, 1, 1 };\
+	DxDevice::GetInstance()->GetD3DDeviceContext()->UpdateSubresource(buffer.buffer.Get(), 0, &updateBox, desc.data, 0, 0);\
+	unlock##typetoken##Buffer(_id)
 
-#define DXDEVFACTORY_EMIT_MAPBUFFER(typetoken) \
-	auto& meshBuffer = lockMeshBuffer(mbId);\
-	typetoken##Count = meshBuffer.##typetoken##Count;\
-	typetoken##StrideBytes = meshBuffer.##typetoken##StrideBytes;\
+#define DXDEVFACTORY_EMIT_MAPBUFFER(typetoken,_id) \
+	auto& buffer = lock##typetoken##Buffer(_id);\
+	outMapping->count = buffer.count;\
+	outMapping->strideBytes = buffer.strideBytes;\
 	D3D11_MAPPED_SUBRESOURCE mapped;\
-	ThrowIfFailed(DxDevice::GetInstance()->GetD3DDeviceContext()->Map(meshBuffer.##typetoken##Buffer.Get(), 0, mapType, 0, &mapped));\
-	*outData = mapped.pData;\
-	unlockMeshBuffer(mbId)
+	ThrowIfFailed(DxDevice::GetInstance()->GetD3DDeviceContext()->Map(buffer.buffer.Get(), 0, mapType, 0, &mapped));\
+	outMapping->data = mapped.pData;\
+	unlock##typetoken##Buffer(_id)
 
 template<typename T>
 std::size_t makeHash(const T& v)
@@ -88,10 +87,11 @@ public:
     {}
 
     template<typename IDTYPE>
-    CONT& lock(IDTYPE id)
+    CONT& lock(IDTYPE id, CONT& def)
     {
-		ThrowIfAssert(id.IsValid(), L"id not valid");
-		ThrowIfAssert(id.Number() < m_cont.size(), L"id out of bounds");
+        //ThrowIfAssert(id.IsValid(), L"id not valid");
+        //ThrowIfAssert(id.Number() < m_cont.size(), L"id out of bounds");
+        if (!id.IsValid() || id.Number()>=m_cont.size()) return def;
         
 		CONT& retRes = m_cont[id.Number()];
 		ThrowIfAssert(retRes.lockCount == 0, L"Locked already");
@@ -102,8 +102,9 @@ public:
 	template<typename IDTYPE>
 	void unlock(IDTYPE id)
 	{
-		ThrowIfAssert(id.IsValid(), L"id not valid");
-		ThrowIfAssert(id.Number() < m_cont.size(), L"id out of bounds");
+		//ThrowIfAssert(id.IsValid(), L"id not valid");
+		//ThrowIfAssert(id.Number() < m_cont.size(), L"id out of bounds");
+        if (!id.IsValid() || id.Number() >= m_cont.size()) return;
 
 		CONT& retRes = m_cont[id.Number()];
 		--retRes.lockCount;
@@ -128,13 +129,14 @@ DxDeviceFactory::~DxDeviceFactory()
 {
     FreeLibrary(m_d3dDLLCompiler);
 	releaseCommonStates();
-    ThrowIfAssert(m_renderTargets.empty());
-    ThrowIfAssert(m_textures.empty());
-    ThrowIfAssert(m_vertexLayouts.empty());
-    ThrowIfAssert(m_byteCodes.empty());
-    ThrowIfAssert(m_shaders.empty());
-    ThrowIfAssert(m_constantBuffers.empty());
-    ThrowIfAssert(m_meshBuffers.empty());
+    ThrowIfAssert(m_RenderTargets.empty());
+    ThrowIfAssert(m_Textures.empty());
+    ThrowIfAssert(m_VertexLayouts.empty());
+    ThrowIfAssert(m_ByteCodes.empty());
+    ThrowIfAssert(m_Shaders.empty());
+    ThrowIfAssert(m_ConstantBuffers.empty());
+    ThrowIfAssert(m_VertexBuffers.empty());
+    ThrowIfAssert(m_IndexBuffers.empty());
     ThrowIfAssert(m_BlendStates.empty());
     ThrowIfAssert(m_DepthStencilStates.empty());
     ThrowIfAssert(m_RasterizerStates.empty());
@@ -170,9 +172,9 @@ IdRenderTarget  DxDeviceFactory::createRenderTarget(int32_t width, int32_t heigh
         ThrowIfFailed(pd3dDev->CreateDepthStencilView(renderTarget.renderTargetDepthStencilTexture.Get(), NULL, renderTarget.renderTargetDepthStencilView.GetAddressOf()));
     }
 
-    IdRenderTarget retId( (uint32_t)m_renderTargets.size());
+    IdRenderTarget retId( (uint32_t)m_RenderTargets.size());
 	renderTarget.state = DXSTATE_LOADED;
-	m_renderTargets.push_back(renderTarget);
+	m_RenderTargets.push_back(renderTarget);
     return retId;
 }
 
@@ -181,13 +183,13 @@ task<IdTexture> DxDeviceFactory::createTexture(const std::wstring& filename, uin
     return create_task(Engine::ReadDataAsync(filename))
         .then([this](const std::vector<byte>& fileData) -> IdTexture
     {
-        IdTexture texId((uint32_t)m_textures.size());
+        IdTexture texId((uint32_t)m_Textures.size());
         DxTexture tex;
         tex.state = DXSTATE_LOADED;
         auto dxDev = DxDevice::GetInstance()->GetD3DDevice();
         ThrowIfFailed(CreateWICTextureFromMemory((ID3D11Device*)dxDev, (uint8_t*)&fileData[0], fileData.size(),
             (ID3D11Resource**)tex.texture.GetAddressOf(), tex.textureShaderResourceView.GetAddressOf()));
-        m_textures.push_back(tex);
+        m_Textures.push_back(tex);
         return texId;
     });	
 }
@@ -201,8 +203,8 @@ IdTexture DxDeviceFactory::createTexture(IdRenderTarget rt)
     texture.texture = rtTex.texture;
     texture.textureShaderResourceView = rtTex.textureShaderResourceView;
 
-    IdTexture retId((uint32_t)m_textures.size());
-    m_textures.push_back(texture);
+    IdTexture retId((uint32_t)m_Textures.size());
+    m_Textures.push_back(texture);
     return retId;
 }
 
@@ -241,8 +243,8 @@ IdTexture DxDeviceFactory::createTexture(DXGI_FORMAT texf, uint8_t* data, uint32
     ThrowIfFailed( dxDev->CreateShaderResourceView(texture.texture.Get(), NULL, &texture.textureShaderResourceView) );
 
     // add to list
-    IdTexture retId((uint32_t)m_textures.size());
-    m_textures.push_back(texture);
+    IdTexture retId((uint32_t)m_Textures.size());
+    m_Textures.push_back(texture);
 
     return retId;
 }
@@ -263,8 +265,8 @@ IdVertexLayout  DxDeviceFactory::createVertexLayout(const std::vector<D3D11_INPU
 	for (auto elm : elements)
 		vertexLayout.vertexStrideBytes += DxHelper::SizeOfFormatElement(elm.Format);
 
-    IdVertexLayout retId((uint32_t)m_vertexLayouts.size());
-    m_vertexLayouts.push_back(vertexLayout);
+    IdVertexLayout retId((uint32_t)m_VertexLayouts.size());
+    m_VertexLayouts.push_back(vertexLayout);
     return retId;
 }
 
@@ -273,22 +275,22 @@ task<IdByteCode> DxDeviceFactory::createShaderByteCode(const std::wstring& filen
     return create_task( Engine::ReadDataAsync(filename) )
         .then( [this](const std::vector<byte>& fileData) -> IdByteCode
     {
-        IdByteCode bcId((uint32_t)m_byteCodes.size());
+        IdByteCode bcId((uint32_t)m_ByteCodes.size());
         DxByteCode byteCode;
         byteCode.state = DXSTATE_LOADED;
         byteCode.data = std::make_shared<std::vector<byte>>(fileData);
-        m_byteCodes.push_back(byteCode);
+        m_ByteCodes.push_back(byteCode);
         return bcId;
     });
 }
 
 IdByteCode DxDeviceFactory::createShaderByteCode(const std::vector<byte>& bytecode)
 {
-    IdByteCode bcId((uint32_t)m_byteCodes.size());
+    IdByteCode bcId((uint32_t)m_ByteCodes.size());
     DxByteCode byteCode;
 	byteCode.state = DXSTATE_LOADED;
     byteCode.data = std::make_shared<std::vector<byte>>(bytecode);
-    m_byteCodes.push_back(byteCode);
+    m_ByteCodes.push_back(byteCode);
     return bcId;
 }
 
@@ -310,8 +312,8 @@ IdShader DxDeviceFactory::createShader(IdByteCode byteCodeId, eDxShaderStage sta
     }
     unlockByteCode(byteCodeId);
 	shader.state = DXSTATE_LOADED;
-    IdShader shId((uint32_t)m_shaders.size());
-    m_shaders.push_back(shader);
+    IdShader shId((uint32_t)m_Shaders.size());
+    m_Shaders.push_back(shader);
     return shId;
 }
 
@@ -325,9 +327,9 @@ IdConstantBuffer DxDeviceFactory::createConstantBuffer(IdByteCode byteCode)
     unlockByteCode(byteCode);
 
     // creates a new constant buffer ...
-    IdConstantBuffer cbId((uint32_t)m_constantBuffers.size());
-    m_constantBuffers.push_back(DxConstantBuffer());
-    DxConstantBuffer& cb = m_constantBuffers.back();
+    IdConstantBuffer cbId((uint32_t)m_ConstantBuffers.size());
+    m_ConstantBuffers.push_back(DxConstantBuffer());
+    DxConstantBuffer& cb = m_ConstantBuffers.back();
 
     // ...which is initialized with the reflection.
     cb.CreateFromReflector(reflector.Get());
@@ -335,101 +337,82 @@ IdConstantBuffer DxDeviceFactory::createConstantBuffer(IdByteCode byteCode)
     return cbId;
 }
 
-IdMeshBuffer DxDeviceFactory::createMeshBuffer(const DxMeshBufferElementDesc* vertexDesc, const DxMeshBufferElementDesc* indexDesc)
+template<typename TID, typename TB>
+TID createBufferInternal(std::vector<TB>& listBuffers, const DxMeshBufferElementDesc& desc, D3D11_BIND_FLAG bindFlag)
 {
-	IdMeshBuffer mbId((uint32_t)m_meshBuffers.size());
-	DxMeshBuffer meshBuffer;
-	meshBuffer.state = DXSTATE_LOADED;
-	m_meshBuffers.push_back(meshBuffer);
+    TID id((uint32_t)listBuffers.size());
+    TB buff;
+    buff.state = DXSTATE_LOADED;
+    listBuffers.push_back(buff);
 
-	if ( vertexDesc )
-		createMeshBufferVertices(mbId, vertexDesc->data, vertexDesc->count, vertexDesc->strideBytes);
+    D3D11_BUFFER_DESC bd;
+    ZeroMemory(&bd, sizeof(bd));
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = desc.count * desc.strideBytes;
+    bd.BindFlags = bindFlag;
+    bd.CPUAccessFlags = 0;
+    D3D11_SUBRESOURCE_DATA* pInitData = NULL;
+    D3D11_SUBRESOURCE_DATA idata;
+    if (desc.data)
+    {
+        pInitData = &idata;
+        pInitData->SysMemPitch = 0;
+        pInitData->SysMemSlicePitch = 0;
+        pInitData->pSysMem = desc.data;
+    }
 
-	if (indexDesc)
-		createMeshBufferIndices(mbId, indexDesc->data, indexDesc->count, (eDxIndexFormat)indexDesc->strideBytes);
+    ThrowIfFailed(DxDevice::GetInstance()->GetD3DDevice()->CreateBuffer(&bd, pInitData, buff.buffer.GetAddressOf()));
 
-	return mbId;
+    buff.count = desc.count;
+    buff.strideBytes = desc.strideBytes;
+    return id;
 }
 
-static void createBufferInternal(UINT byteWidth, UINT bindFlags, const void* initData, ID3D11Buffer** pBuffer)
+IdVertexBuffer  DxDeviceFactory::createVertexBuffer(const DxMeshBufferElementDesc& vertexDesc)
 {
-	D3D11_BUFFER_DESC bd;
-	ZeroMemory(&bd, sizeof(bd));
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = byteWidth;
-	bd.BindFlags = bindFlags;
-	bd.CPUAccessFlags = 0;
-	D3D11_SUBRESOURCE_DATA* pInitData = NULL;
-	D3D11_SUBRESOURCE_DATA id;
-	if (initData)
-	{
-		pInitData = &id;
-		pInitData->SysMemPitch = 0;
-		pInitData->SysMemSlicePitch = 0;
-		pInitData->pSysMem = initData;
-	}
-
-	ThrowIfFailed(DxDevice::GetInstance()->GetD3DDevice()->CreateBuffer(&bd, pInitData, pBuffer));
+    ThrowIfAssert(vertexDesc.IsValid());
+    return createBufferInternal<IdVertexBuffer, DxVertexBuffer>(m_VertexBuffers, vertexDesc, D3D11_BIND_VERTEX_BUFFER);
 }
 
-void	DxDeviceFactory::createMeshBufferVertices(IdMeshBuffer mbId, const void* vertexData, uint32_t vertexCount, uint32_t vertexStrideBytes)
+IdIndexBuffer  DxDeviceFactory::createIndexBuffer(const DxMeshBufferElementDesc& indexDesc)
 {
-	ThrowIfAssert(mbId.IsValid(), L"Mesh buffer not valid");
-	ThrowIfAssert(vertexCount!=0, L"Vertex count cannot be 0");
-	ThrowIfAssert(vertexStrideBytes!=0, L"Vertex stride cannot be 0");
-
-	auto& meshBuffer = lockMeshBuffer(mbId);
-	createBufferInternal(vertexStrideBytes*vertexCount, D3D11_BIND_VERTEX_BUFFER, vertexData, &meshBuffer.vertexBuffer);
-	meshBuffer.vertexCount = vertexCount;
-	meshBuffer.vertexStrideBytes = vertexStrideBytes;
-	unlockMeshBuffer(mbId);
+    ThrowIfAssert(indexDesc.IsValid());
+    return createBufferInternal<IdIndexBuffer, DxIndexBuffer>(m_IndexBuffers, indexDesc, D3D11_BIND_INDEX_BUFFER);
 }
 
-void	DxDeviceFactory::createMeshBufferIndices(IdMeshBuffer mbId, const void* indexData, uint32_t indexCount, eDxIndexFormat indexFormat)
-{
-	ThrowIfAssert(mbId.IsValid(), L"Mesh buffer not valid");
-	ThrowIfAssert(indexCount!=0, L"Index count cannot be 0");
-	ThrowIfAssert(indexFormat == 2 || indexFormat == 4, L"Index stride has to be 2 or 4");
 
-	auto& meshBuffer = lockMeshBuffer(mbId);
-	createBufferInternal(static_cast<int>(indexFormat) * indexCount, D3D11_BIND_INDEX_BUFFER, indexData, &meshBuffer.indexBuffer);
-	meshBuffer.indexCount = indexCount;
-	meshBuffer.indexStrideBytes = indexFormat;
-	unlockMeshBuffer(mbId);
+void DxDeviceFactory::fillVertexBuffer(IdVertexBuffer vbId, const DxMeshBufferElementDesc& desc)
+{
+    DXDEVFACTORY_EMIT_FILLBUFFER(Vertex, vbId);
 }
 
-void	DxDeviceFactory::fillMeshBufferVertices(IdMeshBuffer mbId, const void* vertexData, uint32_t vertexCount)
+void DxDeviceFactory::fillIndexBuffer(IdIndexBuffer ibId, const DxMeshBufferElementDesc& desc)
 {
-	DXDEVFACTORY_EMIT_FILLBUFFER(vertex);
+    DXDEVFACTORY_EMIT_FILLBUFFER(Index, ibId);
 }
 
-void	DxDeviceFactory::fillMeshBufferIndices(IdMeshBuffer mbId, const void* indexData, uint32_t indexCount)
+void DxDeviceFactory::mapVertexBuffer(IdVertexBuffer vbId, DxMeshBufferElementDesc* outMapping, D3D11_MAP mapType)
 {
-	DXDEVFACTORY_EMIT_FILLBUFFER(index);
+    DXDEVFACTORY_EMIT_MAPBUFFER(Vertex, vbId);
 }
 
-void DxDeviceFactory::mapMeshBufferVertices(IdMeshBuffer mbId, uint32_t& vertexCount, uint32_t& vertexStrideBytes, void** outData, D3D11_MAP mapType)
+void DxDeviceFactory::mapIndexBuffer(IdIndexBuffer ibId, DxMeshBufferElementDesc* outMapping, D3D11_MAP mapType)
 {
-	DXDEVFACTORY_EMIT_MAPBUFFER(vertex);
+    DXDEVFACTORY_EMIT_MAPBUFFER(Index, ibId);
 }
 
-void DxDeviceFactory::unmapMeshBufferVertices(IdMeshBuffer mbId)
+void DxDeviceFactory::unmapVertexBuffer(IdVertexBuffer vbId)
 {
-	auto& meshBuffer = lockMeshBuffer(mbId);
-	DxDevice::GetInstance()->GetD3DDeviceContext()->Unmap(meshBuffer.vertexBuffer.Get(), 0);
-	unlockMeshBuffer(mbId);
+    auto& buffer = lockVertexBuffer(vbId);
+    DxDevice::GetInstance()->GetD3DDeviceContext()->Unmap(buffer.buffer.Get(), 0);
+    unlockVertexBuffer(vbId);
 }
 
-void DxDeviceFactory::mapMeshBufferIndices(IdMeshBuffer mbId, uint32_t& indexCount, uint32_t& indexStrideBytes, void** outData, D3D11_MAP mapType)
+void DxDeviceFactory::unmapIndexBuffer(IdIndexBuffer ibId)
 {
-	DXDEVFACTORY_EMIT_MAPBUFFER(index);
-}
-
-void DxDeviceFactory::unmapMeshBufferIndices(IdMeshBuffer mbId)
-{
-	auto& meshBuffer = lockMeshBuffer(mbId);
-	DxDevice::GetInstance()->GetD3DDeviceContext()->Unmap(meshBuffer.indexBuffer.Get(), 0);
-	unlockMeshBuffer(mbId);
+    auto& buffer = lockIndexBuffer(ibId);
+    DxDevice::GetInstance()->GetD3DDeviceContext()->Unmap(buffer.buffer.Get(), 0);
+    unlockIndexBuffer(ibId);
 }
 
 IdBlendState DxDeviceFactory::createBlendState(D3D11_BLEND srcBlend, D3D11_BLEND destBlend)
@@ -526,13 +509,14 @@ void DxDeviceFactory::releaseResource(uint32_t ResourceId)
 
 	switch (resType)
 	{
-	case ID_RENDERTARGET: releaseResourceInternal(m_renderTargets, resNumber); break;
-	case ID_VERTEXLAYOUT: releaseResourceInternal(m_vertexLayouts, resNumber); break;
-	case ID_MESHBUFFER: releaseResourceInternal(m_meshBuffers, resNumber); break;
-	case ID_TEXTURE: releaseResourceInternal(m_textures, resNumber); break;
-	case ID_BYTECODE: releaseResourceInternal(m_byteCodes, resNumber); break;
-	case ID_SHADER: releaseResourceInternal(m_shaders, resNumber); break;
-    case ID_CONSTANTBUFFER: releaseResourceInternal(m_constantBuffers, resNumber); break;
+	case ID_RENDERTARGET: releaseResourceInternal(m_RenderTargets, resNumber); break;
+	case ID_VERTEXLAYOUT: releaseResourceInternal(m_VertexLayouts, resNumber); break;
+    case ID_VERTEXBUFFER: releaseResourceInternal(m_VertexBuffers, resNumber); break;
+    case ID_INDEXBUFFER: releaseResourceInternal(m_IndexBuffers, resNumber); break;
+	case ID_TEXTURE: releaseResourceInternal(m_Textures, resNumber); break;
+	case ID_BYTECODE: releaseResourceInternal(m_ByteCodes, resNumber); break;
+	case ID_SHADER: releaseResourceInternal(m_Shaders, resNumber); break;
+    case ID_CONSTANTBUFFER: releaseResourceInternal(m_ConstantBuffers, resNumber); break;
 	case ID_SAMPLERSTATE: releaseResourceInternal(m_SamplerStates, resNumber); break;
 	case ID_DEPTHSTENCILSTATE: releaseResourceInternal(m_DepthStencilStates, resNumber); break;
 	case ID_RASTERIZERSTATE: releaseResourceInternal(m_RasterizerStates, resNumber); break;
@@ -564,9 +548,9 @@ void DxDeviceFactory::createCommonStates()
 	renderTarget.renderTargetView = dxDev->GetBackBufferRenderTargetView();
 	renderTarget.renderTargetDepthStencilView = dxDev->GetDepthStencilView();
 
-	m_commonRenderTarget.Number((uint32_t)m_renderTargets.size());
+	m_commonRenderTarget.Number((uint32_t)m_RenderTargets.size());
 	renderTarget.state = DXSTATE_LOADED;
-	m_renderTargets.push_back(renderTarget);
+	m_RenderTargets.push_back(renderTarget);
 }
 
 void DxDeviceFactory::releaseCommonStates()
@@ -578,15 +562,16 @@ void DxDeviceFactory::releaseCommonStates()
 	for (auto rid : m_SamplerStatesCommon) releaseResource(rid);
 }
 
-DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(RenderTarget, m_renderTargets);
-DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(Texture, m_textures);
-DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(VertexLayout, m_vertexLayouts);
-DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(ByteCode, m_byteCodes);
-DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(Shader, m_shaders);
-DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(ConstantBuffer, m_constantBuffers);
-DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(MeshBuffer, m_meshBuffers);
-DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(BlendState, m_BlendStates);
-DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(DepthStencilState, m_DepthStencilStates);
-DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(RasterizerState, m_RasterizerStates);
-DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(SamplerState, m_SamplerStates);
+DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(RenderTarget);
+DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(Texture);
+DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(VertexLayout);
+DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(ByteCode);
+DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(Shader);
+DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(ConstantBuffer);
+DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(VertexBuffer);
+DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(IndexBuffer);
+DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(BlendState);
+DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(DepthStencilState);
+DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(RasterizerState);
+DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(SamplerState);
 
