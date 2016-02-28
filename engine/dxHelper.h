@@ -36,6 +36,8 @@ namespace Engine
 #   define ThrowIfAssert(...)
 #endif
 
+#define ThrowNotImplemented() ThrowIfAssertAlways(false, L"Not Implemented");
+
 	// Function that reads from a binary file asynchronously.
 	inline Concurrency::task<std::vector<byte>> ReadDataAsync(const std::wstring& filename)
 	{

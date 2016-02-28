@@ -513,7 +513,7 @@ void releaseResourceInternal(CONT& container, uint32_t n)
     --resource.refCount;
     if (resource.refCount <= 0)
     {
-        resource.release();
+        resource.Release();
         resource.state = DXSTATE_RELEASED;
     }
 }

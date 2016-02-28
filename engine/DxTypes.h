@@ -169,7 +169,7 @@ namespace Engine
         }
 
         const void* getPtr() const { return &(*data.get())[0]; }
-        uint32_t getLength() const { return (uint32_t)data->sizeInBytes(); }
+        uint32_t getLength() const { return (uint32_t)data->size(); }
     };
 
     struct DxShader : public DxResource
@@ -209,21 +209,22 @@ namespace Engine
     public:
         struct ConstantBuffer
         {
-            ConstantBuffer() : bindPoint(-1), sizeInBytes(0) {}
-            ~ConstantBuffer() { Release(); }
+            ConstantBuffer() : bindPoint(-1), sizeInBytes(0), cpuMemBuffer(nullptr), dirty(false) {}
+
             void Release();
             size_t GetSizeInBytes() const { return sizeInBytes; }
 
-            std::vector<float> cpuMemBuffer;
+            float* cpuMemBuffer;
             int32_t bindPoint;
             uint32_t sizeInBytes;
+            bool dirty;
         };
 
         struct ShaderConstant
         {
-            ShaderConstant() : index(-1), nameHash(0), resNumber(0), type(0), sizeInBytes(0) {}
+            ShaderConstant() : cbIndexAndOffset(~(-1)), nameHash(0), resNumber(0), type(0), sizeInBytes(0) {}
 
-            bool IsValid()const { return index != -1 && type != SCT_NONE && sizeInBytes != 0 && nameHash != 0; }
+            bool IsValid()const { return cbIndexAndOffset != -1 && type != SCT_NONE && sizeInBytes != 0 && nameHash != 0; }
             bool IsTexture()const { return type >= SCT_TEXTURE && type <= SCT_TEXTURE2DARRAY; }
             bool IsSampler()const { return type >= SCT_SAMPLER; }
             bool IsFloatArray()const { return type >= SCT_FLOAT && type <= SCT_FLOAT43; }
@@ -232,7 +233,7 @@ namespace Engine
             std::string name;
 #endif
             std::size_t nameHash;
-            int32_t index;
+            uint32_t cbIndexAndOffset;
             uint32_t resNumber;   // only used when IsTexture() or IsSampler(). it is the resource number
             uint16_t type;        // eDxShaderConstantType
             uint16_t sizeInBytes;
@@ -242,21 +243,23 @@ namespace Engine
         void Release();
         void CreateFromReflector(ID3D11ShaderReflection* reflector);
 
-        int32_t FindConstantIndexByName(const std::wstring& constantName) const;
-        int32_t SetConstantValue(int32_t constantNdx, const float* values, uint32_t count);
-        int32_t SetConstantValue(int32_t constantNdx, const bool* values, uint32_t count);
-        int32_t SetConstantValue(int32_t constantNdx, const int* values, uint32_t count);
-        int32_t SetConstantValue(int32_t constantNdx, IdTexture texture, uint32_t count = 1);
-        int32_t SetConstantValue(int32_t constantNdx, IdSamplerState samplerState, uint32_t count = 1);
+        int32_t FindConstantIndexByName(const std::string& constantName) const;
+        void SetConstantValue(int32_t constantNdx, const float* values, uint32_t count);
+        void SetConstantValue(int32_t constantNdx, const bool* values, uint32_t count);
+        void SetConstantValue(int32_t constantNdx, const int* values, uint32_t count);
+        void SetConstantValue(int32_t constantNdx, IdTexture texture);
+        void SetConstantValue(int32_t constantNdx, IdSamplerState samplerState);
 
-        uint32_t GetBuffersCount() const { return (uint32_t)m_buffers.sizeInBytes(); }
-        uint32_t GetConstantsCount() const { return (uint32_t)m_constantsDesc.sizeInBytes(); }
-        const ShaderConstant& GetConstant(int32_t index) const { return m_constantsDesc[index]; }
+        uint32_t GetBuffersCount() const { return (uint32_t)m_buffers.size(); }
+        uint32_t GetConstantsCount() const { return (uint32_t)m_constants.size(); }
+        const ShaderConstant& GetConstant(int32_t cbIndexAndOffset) const { return m_constants[cbIndexAndOffset]; }
 
     protected:
+        ConstantBuffer& GetCBIndexAndOffset(uint32_t constantIndex, uint32_t& outOffset);
+
         std::vector<ID3D11Buffer*> m_d3dBuffers;
         std::vector<ConstantBuffer> m_buffers;
-        std::vector<ShaderConstant> m_constantsDesc; // textures at the beginning of this array
+        std::vector<ShaderConstant> m_constants; // textures at the beginning of this array
     };
 
     struct DxMeshBufferElementDesc

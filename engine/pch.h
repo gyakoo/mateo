@@ -39,4 +39,5 @@
 #include <DirectXTK/Inc/WICTextureLoader.h>
 
 #define DxSafeRelease(ptr) { if (ptr) { (ptr)->Release(); (ptr)=nullptr; } }
+#define SafeDeleteArray(ptr) { if (ptr) { delete [](ptr); (ptr)=nullptr; } }
 

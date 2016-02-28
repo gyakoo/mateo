@@ -21,7 +21,7 @@ namespace Engine
       void ReloadWindowSizeResources();
 
       int RegisterRenderPipeline(Platform::String^ pipelineName);
-      void UnregisterRenderPipeline(int index);
+      void UnregisterRenderPipeline(int cbIndexAndOffset);
 
     private:
       // Application lifecycle event handlers.

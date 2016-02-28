@@ -1,6 +1,7 @@
 #include <Pch.h>
 #include <engine/DxTypes.h>
 #include <engine/DxHelper.h>
+#include <engine/dxDevice.h>
 using namespace Engine;
 
 DxDeviceContextState::DxDeviceContextState()
@@ -11,48 +12,107 @@ DxDeviceContextState::DxDeviceContextState()
 
 void DxConstantBuffer::ConstantBuffer::Release()
 {
-    cpuMemBuffer.resize(0);
+    SafeDeleteArray(cpuMemBuffer);
 }
 
 void DxConstantBuffer::Release()
 {
+    for (auto& cb : m_buffers)
+        SafeDeleteArray(cb.cpuMemBuffer);
     m_buffers.resize(0);
-    m_constantsDesc.resize(0);
+    m_constants.resize(0);
     for (auto& db : m_d3dBuffers)
         DxSafeRelease(db);
+    m_d3dBuffers.resize(0);
 }
 
-int32_t DxConstantBuffer::SetConstantValue(int32_t constantNdx, const float* values, uint32_t count)
+int32_t DxConstantBuffer::FindConstantIndexByName(const std::string& constantName) const
 {
+    const auto newhash = std::hash<std::string>()(constantName);
+
+    const size_t count = m_constants.size();
+    for (size_t i = 0; i < count; ++i)
+    {
+        if (m_constants[i].nameHash == newhash)
+            return (int32_t)i;
+    }
     return -1;
 }
 
-int32_t DxConstantBuffer::SetConstantValue(int32_t constantNdx, const bool* values, uint32_t count)
+DxConstantBuffer::ConstantBuffer& DxConstantBuffer::GetCBIndexAndOffset(uint32_t cbIndexAndOffset, uint32_t& outOffset)
 {
-    return -1;
+    const uint32_t cbIndex = (cbIndexAndOffset >> 24);
+    outOffset = (cbIndexAndOffset & 0x00ffffff);
+    return m_buffers[cbIndex];
 }
 
-int32_t DxConstantBuffer::SetConstantValue(int32_t constantNdx, const int* values, uint32_t count)
+void DxConstantBuffer::SetConstantValue(int32_t constantNdx, const float* values, uint32_t count)
 {
-    return -1;
+    ThrowIfAssert(constantNdx >= 0 && constantNdx < (int32_t)m_constants.size());
+    ThrowIfAssert(values != nullptr);
+    ThrowIfAssert(count > 0);
+
+    const auto& constant = m_constants[constantNdx];
+    ThrowIfAssert(constant.IsFloatArray());
+
+    // gets the constant buffer and the register offset
+    uint32_t regOffset = 0;
+    auto& cBuffer = GetCBIndexAndOffset(constant.cbIndexAndOffset, regOffset);
+    
+    const uint32_t memoryOffset = regOffset/sizeof(float);
+    float* startMem = cBuffer.cpuMemBuffer + memoryOffset;
+    for (uint32_t i = 0; i < count; ++i)
+        startMem[i] = values[i];
+    cBuffer.dirty = true;
 }
 
-int32_t DxConstantBuffer::SetConstantValue(int32_t constantNdx, IdTexture texture, uint32_t count)
+void DxConstantBuffer::SetConstantValue(int32_t constantNdx, const bool* values, uint32_t count)
 {
-    return -1;
+    ThrowIfAssert(constantNdx >= 0 && constantNdx < (int32_t)m_constants.size());
+    ThrowIfAssert(values != nullptr);
+    ThrowIfAssert(count > 0);
+
+    ThrowNotImplemented();
 }
 
-int32_t DxConstantBuffer::SetConstantValue(int32_t constantNdx, IdSamplerState samplerState, uint32_t count)
+void DxConstantBuffer::SetConstantValue(int32_t constantNdx, const int* values, uint32_t count)
 {
-    return -1;
+    ThrowIfAssert(constantNdx >= 0 && constantNdx < (int32_t)m_constants.size());
+    ThrowIfAssert(values != nullptr);
+    ThrowIfAssert(count > 0);
+
+    ThrowNotImplemented();
 }
 
-int32_t  DxConstantBuffer::FindConstantIndexByName(const std::wstring& constantName) const
+void DxConstantBuffer::SetConstantValue(int32_t constantNdx, IdTexture texture)
 {
-    return -1;
+    ThrowIfAssert(constantNdx >= 0 && constantNdx < (int32_t)m_constants.size());
+    ThrowIfAssert(texture.IsValid());
+
+    auto& constant = m_constants[constantNdx];
+    ThrowIfAssert(constant.IsTexture());
+    
+    uint32_t regOffset = 0;
+    auto& cBuffer = GetCBIndexAndOffset(constant.cbIndexAndOffset, regOffset);
+    constant.resNumber = texture.Number();
+    cBuffer.dirty = true;
 }
 
-eDxShaderConstantType D3D11DimensionToSCT(D3D_SRV_DIMENSION dim)
+void DxConstantBuffer::SetConstantValue(int32_t constantNdx, IdSamplerState samplerState)
+{
+    ThrowIfAssert(constantNdx >= 0 && constantNdx < (int32_t)m_constants.size());
+    ThrowIfAssert(samplerState.IsValid());
+
+    auto& constant = m_constants[constantNdx];
+    ThrowIfAssert(constant.IsSampler());
+
+    uint32_t regOffset = 0;
+    auto& cBuffer = GetCBIndexAndOffset(constant.cbIndexAndOffset, regOffset);
+    constant.resNumber = samplerState.Number();
+    cBuffer.dirty = true;
+}
+
+static eDxShaderConstantType D3D11DimensionToSCT(D3D_SRV_DIMENSION dim)
 {
     switch (dim)
     {
@@ -73,7 +133,7 @@ eDxShaderConstantType D3D11DimensionToSCT(D3D_SRV_DIMENSION dim)
     return SCT_NONE;
 }
 
-eDxShaderConstantType D3D11TypeToSCT(const D3D11_SHADER_TYPE_DESC &c)
+static eDxShaderConstantType D3D11TypeToSCT(const D3D11_SHADER_TYPE_DESC &c)
 {
     switch (c.Type)
     {
@@ -144,6 +204,7 @@ eDxShaderConstantType D3D11TypeToSCT(const D3D11_SHADER_TYPE_DESC &c)
 
 void DxConstantBuffer::CreateFromReflector(ID3D11ShaderReflection* pReflector)
 {
+    Release();
     // ************************* first pass, only TEXTURES and SAMPLERS at the beginning of array *************************
     // general info
     D3D11_SHADER_DESC shDesc;
@@ -164,7 +225,7 @@ void DxConstantBuffer::CreateFromReflector(ID3D11ShaderReflection* pReflector)
         shConstant.name = resDesc.Name;
 #endif
         shConstant.nameHash = std::hash<std::string>()(resDesc.Name);
-        shConstant.index = resDesc.BindPoint;
+        shConstant.cbIndexAndOffset = resDesc.BindPoint;
         shConstant.sizeInBytes = (int8_t)resDesc.BindCount;
         // is it a texture unit or a sampler state?
         shConstant.type = (resDesc.Type == D3D10_SIT_TEXTURE)
@@ -172,7 +233,7 @@ void DxConstantBuffer::CreateFromReflector(ID3D11ShaderReflection* pReflector)
             : SCT_SAMPLER;
         ThrowIfFailed(shConstant.IsValid() ? S_OK : E_FAIL, L"Invalid constant info copied");
 
-        m_constantsDesc.push_back(shConstant);
+        m_constants.push_back(shConstant);
     } // for
 
     // ************************* second pass, rest of VARIABLES *************************  
@@ -200,19 +261,37 @@ void DxConstantBuffer::CreateFromReflector(ID3D11ShaderReflection* pReflector)
             shConstant.name = varDesc.Name;
 #endif
             shConstant.nameHash = std::hash<std::string>()(varDesc.Name);
-            shConstant.index = (m_buffers.size() << 24) | (varDesc.StartOffset & 0x00ffffff); // 8bits for internal cb index and 24bits for offset inside
+            shConstant.cbIndexAndOffset = (uint32_t)(m_buffers.size() << 24) | (varDesc.StartOffset & 0x00ffffff); // 8bits for internal cb index and 24bits for offset inside
             shConstant.type = (int8_t)D3D11TypeToSCT(typeDesc);
             shConstant.sizeInBytes = (int8_t)varDesc.Size;
             ThrowIfFailed(shConstant.IsValid() ? S_OK : E_FAIL, L"Invalid constant info copied");
-            m_constantsDesc.push_back(shConstant);
+            m_constants.push_back(shConstant);
         }
-        m_buffers.push_back(cb);
-        
+        m_buffers.push_back(cb);        
     }//for
 
-    for (auto& cb : m_buffers)
+    // create d3d buffers and cpu memory buffers
+    if (!m_buffers.empty())
     {
+        D3D11_BUFFER_DESC bd;
+        bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        bd.Usage = D3D11_USAGE_DYNAMIC;
+        bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        bd.MiscFlags = 0;
+        bd.StructureByteStride = 0;
 
+        auto dxDev = DxDevice::GetInstance()->GetD3DDevice();
+        m_d3dBuffers.resize(m_buffers.size());
+        size_t id3dbuf = 0;
+        for (auto& cb : m_buffers)
+        {
+            bd.ByteWidth = cb.sizeInBytes;
+            ThrowIfFailed(dxDev->CreateBuffer(&bd, nullptr, &m_d3dBuffers[id3dbuf]));
+            ++id3dbuf;
 
-    }    
+            size_t nFloats = (size_t)std::ceilf(float(cb.sizeInBytes) / sizeof(float));
+            ThrowIfAssert(nFloats > 0, L"Invalid number of floats to reserve");
+            cb.cpuMemBuffer = new float[nFloats];
+        }
+    }
 }

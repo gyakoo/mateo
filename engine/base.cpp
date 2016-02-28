@@ -198,11 +198,11 @@ namespace Engine
       return ret;
   }
 
-  void Base::UnregisterRenderPipeline(int index)
+  void Base::UnregisterRenderPipeline(int cbIndexAndOffset)
   {
-      if (index >= 0 && index < (int)m_renderPipelines.size())
+      if (cbIndexAndOffset >= 0 && cbIndexAndOffset < (int)m_renderPipelines.size())
       {
-          m_renderPipelines.erase(m_renderPipelines.begin() + index);
+          m_renderPipelines.erase(m_renderPipelines.begin() + cbIndexAndOffset);
       }
   }
 
