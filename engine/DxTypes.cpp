@@ -9,6 +9,21 @@ void DxConstantBuffer::ConstantBuffer::Release()
     SafeDeleteArray(cpuMemBuffer);
 }
 
+bool DxConstantBuffer::ConstantBuffer::Flush(ID3D11DeviceContext* context, ID3D11Buffer* d3dBuffer)
+{
+    if (!dirty) return false;
+
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    ThrowIfFailed(context->Map(d3dBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped));
+    
+    CopyMemory(mapped.pData, cpuMemBuffer, sizeInBytes);
+    
+    context->Unmap(d3dBuffer, 0);
+    dirty = false;
+    return true;
+}
+
+
 void DxConstantBuffer::Release()
 {
     for (auto& cb : m_buffers)
@@ -22,7 +37,7 @@ void DxConstantBuffer::Release()
 
 int32_t DxConstantBuffer::FindConstantIndexByName(const std::string& constantName) const
 {
-    const auto newhash = std::hash<std::string>()(constantName);
+    const auto newhash = makeHash(constantName);
 
     const size_t count = m_constants.size();
     for (size_t i = 0; i < count; ++i)
@@ -128,7 +143,7 @@ void DxConstantBuffer::CreateFromReflector(ID3D11ShaderReflection* pReflector)
 #ifdef _DEBUG
         shConstant.name = resDesc.Name;
 #endif
-        shConstant.nameHash = std::hash<std::string>()(resDesc.Name);
+        shConstant.nameHash = makeHash(resDesc.Name);
         shConstant.cbIndexAndOffset = resDesc.BindPoint;
         shConstant.sizeInBytes = (int8_t)resDesc.BindCount;
         // is it a texture unit or a sampler state?
@@ -164,7 +179,7 @@ void DxConstantBuffer::CreateFromReflector(ID3D11ShaderReflection* pReflector)
 #ifdef _DEBUG
             shConstant.name = varDesc.Name;
 #endif
-            shConstant.nameHash = std::hash<std::string>()(varDesc.Name);
+            shConstant.nameHash = makeHash(varDesc.Name);
             shConstant.cbIndexAndOffset = (uint32_t)(m_buffers.size() << 24) | (varDesc.StartOffset & 0x00ffffff); // 8bits for internal cb index and 24bits for offset inside
             shConstant.type = (int8_t)DxHelper::D3D11TypeToSCT(typeDesc);
             shConstant.sizeInBytes = (int8_t)varDesc.Size;

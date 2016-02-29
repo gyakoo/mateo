@@ -33,7 +33,7 @@ void DxDeviceFactory::unlock##typetoken(Id##typetoken id)\
 	Dx##typetoken state; \
 	for (int i = 0; i < count; ++i)\
 	{\
-		state.state = DXSTATE_LOADED;\
+		state.state = DXSTATE_FIXED;\
 		state.stateObj = (commonStates.*facMethods[i])();\
 		m_##typetoken##s.push_back(state);\
 		m_##typetoken##sCommon[i] = Id##typetoken(i);\
@@ -62,21 +62,6 @@ void DxDeviceFactory::unlock##typetoken(Id##typetoken id)\
 	ThrowIfFailed(DxDevice::GetInstance()->GetD3DDeviceContext()->Map(buffer.buffer.Get(), 0, mapType, 0, &mapped));\
 	outMapping->data = mapped.pData;\
 	unlock##typetoken##Buffer(_id)
-
-template<typename T>
-std::size_t makeHash(const T& v)
-{
-	return std::hash<T>()(v);
-}
-
-template<typename T, typename... Args>
-std::size_t makeHash(T first, Args ... args)
-{
-	//auto n = sizeof...(Args);
-	std::size_t h = std::hash<T>()(first) ^ (makeHash(args...) << 1);
-	return h;
-}
-
 
 template<typename CONT>
 class DxLocker
@@ -490,9 +475,13 @@ IdRenderTarget DxDeviceFactory::getCommonRenderTarget()
 }
 
 template<typename CONT>
-void releaseResourceInternal(CONT& container, uint32_t n)
+void releaseResourceInternal(CONT& container, uint32_t n, bool forced=false)
 {
 	CONT::value_type& resource = container[n];
+    
+    if ( forced )
+        ThrowIfAssertAlways(resource.state == DXSTATE_LOADED, L"Only can release LOADED resources");
+    
     --resource.refCount;
     if (resource.refCount <= 0)
     {
@@ -522,7 +511,7 @@ void DxDeviceFactory::releaseResource(uint32_t ResourceId)
 	case ID_RASTERIZERSTATE: releaseResourceInternal(m_RasterizerStates, resNumber); break;
 	case ID_BLENDSTATE: releaseResourceInternal(m_BlendStates, resNumber); break;
 	default:
-		ThrowIfAssert(false, L"Unknown resource to be released here");
+		ThrowIfAssert(false, L"Unknown resource to be released in DxDeviceFactory");
 	}
 }
 
@@ -549,17 +538,17 @@ void DxDeviceFactory::createCommonStates()
 	renderTarget.renderTargetDepthStencilView = dxDev->GetDepthStencilView();
 
 	m_commonRenderTarget.Number((uint32_t)m_RenderTargets.size());
-	renderTarget.state = DXSTATE_LOADED;
+	renderTarget.state = DXSTATE_FIXED;
 	m_RenderTargets.push_back(renderTarget);
 }
 
 void DxDeviceFactory::releaseCommonStates()
 {
-	releaseResource(m_commonRenderTarget);
-	for (auto rid : m_BlendStatesCommon) releaseResource(rid);
-	for (auto rid : m_DepthStencilStatesCommon) releaseResource(rid);
-	for (auto rid : m_RasterizerStatesCommon) releaseResource(rid);
-	for (auto rid : m_SamplerStatesCommon) releaseResource(rid);
+    releaseResourceInternal(m_RenderTargets, IdGeneric::ExtractNumber(m_commonRenderTarget), true);
+    for (auto rid : m_BlendStatesCommon)        releaseResourceInternal(m_BlendStates, IdGeneric::ExtractNumber(rid), true);
+	for (auto rid : m_DepthStencilStatesCommon) releaseResourceInternal(m_DepthStencilStates,IdGeneric::ExtractNumber(rid),true);
+	for (auto rid : m_RasterizerStatesCommon)   releaseResourceInternal(m_RasterizerStates, IdGeneric::ExtractNumber(rid), true);
+	for (auto rid : m_SamplerStatesCommon)      releaseResourceInternal(m_SamplerStates, IdGeneric::ExtractNumber(rid), true);
 }
 
 DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(RenderTarget);

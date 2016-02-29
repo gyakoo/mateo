@@ -28,7 +28,8 @@ namespace Engine
         DXSTATE_INVALID = 0,
         DXSTATE_LOADED,
         DXSTATE_LOADING,
-        DXSTATE_RELEASED
+        DXSTATE_RELEASED,
+        DXSTATE_FIXED
     };
 
     enum eDxIndexFormat
@@ -196,9 +197,9 @@ namespace Engine
         struct ConstantBuffer
         {
             ConstantBuffer() : bindPoint(-1), sizeInBytes(0), cpuMemBuffer(nullptr), dirty(false) {}
-
             void Release();
             size_t GetSizeInBytes() const { return sizeInBytes; }
+            bool Flush(ID3D11DeviceContext* context, ID3D11Buffer* d3dBuffer);
 
             float* cpuMemBuffer;
             int32_t bindPoint;
@@ -237,8 +238,11 @@ namespace Engine
         void SetConstantValue(int32_t constantNdx, IdSamplerState samplerState);
 
         uint32_t GetBuffersCount() const { return (uint32_t)m_buffers.size(); }
+        ConstantBuffer& GetBuffer(uint32_t ndx) { return m_buffers[ndx]; }
         uint32_t GetConstantsCount() const { return (uint32_t)m_constants.size(); }
         const ShaderConstant& GetConstant(int32_t cbIndexAndOffset) const { return m_constants[cbIndexAndOffset]; }
+
+        ID3D11Buffer* GetD3DBuffer(uint32_t ndx) const { return m_d3dBuffers[ndx]; }
 
         void SetStage(eDxShaderStage stage) { m_stage = stage; }
         eDxShaderStage GetStage() { return m_stage; }

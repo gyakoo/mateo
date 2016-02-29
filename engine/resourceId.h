@@ -91,4 +91,18 @@ namespace Engine
     typedef ResourceId<ID_DYNLIB>             IdDynLib;
     typedef ResourceId<ID_SOCKET>             IdSocket;
 
+
+    template<typename T>
+    std::size_t makeHash(const T& v)
+    {
+        return std::hash<T>()(v);
+    }
+
+    template<typename T, typename... Args>
+    std::size_t makeHash(T first, Args ... args)
+    {
+        //auto n = sizeof...(Args);
+        std::size_t h = std::hash<T>()(first) ^ (makeHash(args...) << 1);
+        return h;
+    }
 };

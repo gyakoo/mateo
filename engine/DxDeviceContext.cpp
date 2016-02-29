@@ -289,16 +289,33 @@ void DxDeviceContext::ApplyShaders(ID3D11DeviceContext* context, DxDeviceFactory
 
 void DxDeviceContext::ApplyConstantBuffers(ID3D11DeviceContext* context, DxDeviceFactory& factory)
 {
-    for (size_t i = 0; i < SHADER_MAX; ++i )
-    { 
-        IdConstantBuffer cbId;
-        if (CONTEXT_STATE_DIFF(m_constantBuffers[i]))
+    typedef void (STDMETHODCALLTYPE ID3D11DeviceContext::*d3dFunc)(UINT, UINT, ID3D11Buffer*const*);
+    static std::array<d3dFunc, SHADER_MAX> d3dFunctions = 
+    { &ID3D11DeviceContext::VSSetConstantBuffers, &ID3D11DeviceContext::HSSetConstantBuffers
+    , &ID3D11DeviceContext::DSSetConstantBuffers, &ID3D11DeviceContext::GSSetConstantBuffers
+    , &ID3D11DeviceContext::PSSetConstantBuffers };
+
+    // for all shaders
+    IdConstantBuffer cbId;
+    for (uint32_t i = 0; i < SHADER_MAX; ++i )
+    {
+        // get general CB for shader (i)
+        cbId = m_currentState.m_constantBuffers[i];
+        DxConstantBuffer& cbGeneral = factory.lockConstantBuffer(cbId);
+
+        // for all real CBs of this shader
+        const uint32_t cbCount = cbGeneral.GetBuffersCount();
+        for (uint32_t j = 0; j < cbCount; ++j)
         {
-            cbId = m_currentState.m_constantBuffers[i];
-            DxConstantBuffer& cb = factory.lockConstantBuffer(cbId);
-            
-            factory.unlockConstantBuffer(cbId);
+            ID3D11Buffer* pd3dBuffer = cbGeneral.GetD3DBuffer(j);
+            // copy the data from cpu memory to ID3D11Buffer (if dirty)
+            DxConstantBuffer::ConstantBuffer& cb = cbGeneral.GetBuffer(j);
+
+            // if this CB was dirty, set to the device context
+            if (cb.Flush(context, pd3dBuffer))
+                (context->*(d3dFunctions[i]))(cb.bindPoint, 1, &pd3dBuffer);
         }
+        factory.unlockConstantBuffer(cbId);
     }
 }
 
@@ -385,6 +402,7 @@ void DxDeviceContext::ApplyStatesDiff()
 
     ApplyRS(context, factory);
     ApplyShaders(context, factory);
+    ApplyConstantBuffers(context, factory);
     ApplyIA(context, factory);
     ApplyPS(context, factory);
     ApplyOM(context, factory);
