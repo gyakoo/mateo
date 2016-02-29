@@ -287,6 +287,21 @@ void DxDeviceContext::ApplyShaders(ID3D11DeviceContext* context, DxDeviceFactory
     CONTEXT_EMIT_SET_SHADER(PS, SHADER_PIXEL, ID3D11PixelShader);
 }
 
+void DxDeviceContext::ApplyConstantBuffers(ID3D11DeviceContext* context, DxDeviceFactory& factory)
+{
+    for (size_t i = 0; i < SHADER_MAX; ++i )
+    { 
+        IdConstantBuffer cbId;
+        if (CONTEXT_STATE_DIFF(m_constantBuffers[i]))
+        {
+            cbId = m_currentState.m_constantBuffers[i];
+            DxConstantBuffer& cb = factory.lockConstantBuffer(cbId);
+            
+            factory.unlockConstantBuffer(cbId);
+        }
+    }
+}
+
 void DxDeviceContext::ApplyPS(ID3D11DeviceContext* context, DxDeviceFactory& factory)
 {
     // PS - SAMPLER STATES

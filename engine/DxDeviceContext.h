@@ -93,6 +93,7 @@ namespace Engine
         void ApplyRS(ID3D11DeviceContext* context, DxDeviceFactory& factory);
         void ApplyIA(ID3D11DeviceContext* context, DxDeviceFactory& factory);
         void ApplyShaders(ID3D11DeviceContext* context, DxDeviceFactory& factory);
+        void ApplyConstantBuffers(ID3D11DeviceContext* context, DxDeviceFactory& factory);
         void ApplyPS(ID3D11DeviceContext* context, DxDeviceFactory& factory);
         void ApplyOM(ID3D11DeviceContext* context, DxDeviceFactory& factory);
         void ApplyStatesDiff();

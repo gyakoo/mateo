@@ -18,6 +18,7 @@
 #include <agile.h>
 #include <concrt.h>
 #include <array>
+#include <concurrent_vector.h>
 
 #include <engine/ResourceId.h>
 

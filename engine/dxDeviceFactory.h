@@ -7,7 +7,7 @@
 
 #define DXDEVFACTORY_EMIT_STATE_ARRAYS(typetoken)\
         Dx##typetoken m_##typetoken##Default;\
-		std::vector<Dx##typetoken> m_##typetoken##s;
+		concurrency::concurrent_vector<Dx##typetoken> m_##typetoken##s;
 
 #define DXDEVFACTORY_EMIT_STATE_ARRAYS_COMMON(typetoken, count)\
 		DXDEVFACTORY_EMIT_STATE_ARRAYS(typetoken) \

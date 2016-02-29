@@ -82,7 +82,7 @@ template<typename CONT>
 class DxLocker
 {
 public:
-    DxLocker(std::vector<CONT>& container)
+    DxLocker(concurrency::concurrent_vector<CONT>& container)
         : m_cont(container)
     {}
 
@@ -111,7 +111,7 @@ public:
 		ThrowIfAssert(retRes.lockCount >= 0, L"Too many unlocks");
 	}
 
-    std::vector<CONT>& m_cont;
+    concurrency::concurrent_vector<CONT>& m_cont;
 };
 
 DxDeviceFactory::DxDeviceFactory()
@@ -338,7 +338,7 @@ IdConstantBuffer DxDeviceFactory::createConstantBuffer(IdByteCode byteCode, eDxS
 }
 
 template<typename TID, typename TB>
-TID createBufferInternal(std::vector<TB>& listBuffers, const DxMeshBufferElementDesc& desc, D3D11_BIND_FLAG bindFlag)
+TID createBufferInternal(concurrency::concurrent_vector<TB>& listBuffers, const DxMeshBufferElementDesc& desc, D3D11_BIND_FLAG bindFlag)
 {
     TID id((uint32_t)listBuffers.size());
     TB buff;
