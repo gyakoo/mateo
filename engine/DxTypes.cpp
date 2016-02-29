@@ -13,12 +13,12 @@ bool DxConstantBuffer::ConstantBuffer::Flush(ID3D11DeviceContext* context, ID3D1
 {
     if (!dirty) return false;
 
-    D3D11_MAPPED_SUBRESOURCE mapped;
+    context->UpdateSubresource(d3dBuffer, 0, NULL, cpuMemBuffer, 0, 0);
+
+    /*D3D11_MAPPED_SUBRESOURCE mapped;
     ThrowIfFailed(context->Map(d3dBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped));
-    
     CopyMemory(mapped.pData, cpuMemBuffer, sizeInBytes);
-    
-    context->Unmap(d3dBuffer, 0);
+    context->Unmap(d3dBuffer, 0);*/
     dirty = false;
     return true;
 }

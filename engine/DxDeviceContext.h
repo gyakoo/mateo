@@ -61,9 +61,7 @@ namespace Engine
 		void SetVertexBuffers(std::initializer_list<IdVertexBuffer> vertexBuffers, bool discardLeft = true);
         void SetIndexBuffer(IdIndexBuffer indexBuffer);
 		
-		// OM
-		void ClearRenderTarget(std::initializer_list<IdRenderTarget> arrayRTs, const float* color, uint32_t depthStencilFlags, float depth = 1.0f, uint8_t stencil = 0);
-		void ClearRenderTargetDefault(const float* color);
+		// OM		
 		void SetRenderTarget(std::initializer_list<IdRenderTarget> renderTargets, IdRenderTarget depthStencilTarget, bool discardLeft = true);
 		void SetRenderTarget(IdRenderTarget renderTarget, uint32_t slot);
 		void SetRenderTargetDefault();
@@ -80,7 +78,10 @@ namespace Engine
 		void SetShader(eDxShaderStage shaderType, IdShader shader);
         void SetConstantBuffer(IdConstantBuffer cbuffer, eDxShaderStage stage=SHADER_AUTO);
         
-        // Drawing
+        // COMMANDS - Clear, Drawing
+        void Apply();
+        void ClearRenderTarget(std::initializer_list<IdRenderTarget> arrayRTs, const float* color, uint32_t depthStencilFlags, float depth = 1.0f, uint8_t stencil = 0);
+        void ClearRenderTargetDefault(const float* color);
         void DrawIndexed(uint32_t indexCount, uint32_t startIndexLocation=0, uint32_t baseVertexLocation=0);
         void Draw(uint32_t vertexCount, uint32_t startVertexLocation = 0);
         void DrawAuto();
@@ -96,7 +97,6 @@ namespace Engine
         void ApplyConstantBuffers(ID3D11DeviceContext* context, DxDeviceFactory& factory);
         void ApplyPS(ID3D11DeviceContext* context, DxDeviceFactory& factory);
         void ApplyOM(ID3D11DeviceContext* context, DxDeviceFactory& factory);
-        void ApplyStatesDiff();
 
         Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_deviceContext;
         Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> m_userAnnotation;

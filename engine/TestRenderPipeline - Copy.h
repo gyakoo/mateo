@@ -18,6 +18,14 @@ namespace Engine
         virtual void ReloadWindowSizeResources();
 
 	private:
+		// Resources related to text rendering.
+		std::wstring                                    m_text;
+		DWRITE_TEXT_METRICS	                            m_textMetrics;
+		Microsoft::WRL::ComPtr<ID2D1SolidColorBrush>    m_whiteBrush;
+		Microsoft::WRL::ComPtr<ID2D1DrawingStateBlock1> m_stateBlock;
+		Microsoft::WRL::ComPtr<IDWriteTextLayout3>      m_textLayout;
+		Microsoft::WRL::ComPtr<IDWriteTextFormat2>      m_textFormat;
+
         IdTexture   m_mytex;
         IdByteCode  m_psByteCode;
         IdShader    m_ps;

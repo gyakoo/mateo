@@ -92,6 +92,12 @@ namespace Engine
     }
 
     m_dxDevice->SetWindow(window);
+
+    for (auto& rpip : m_renderPipelines)
+    {
+        rpip->createResources();
+        rpip->ReloadWindowSizeResources();
+    }
   }
 
 
@@ -189,9 +195,7 @@ namespace Engine
       {
           ret = (int)m_renderPipelines.size();
           auto rpip = std::make_shared<TestRenderPipeline>();
-          m_renderPipelines.push_back(rpip);
-          rpip->createResources();
-          rpip->ReloadWindowSizeResources();
+          m_renderPipelines.push_back(rpip);          
       }
 
       ThrowIfAssert(ret != -1, L"No render pipeline created");

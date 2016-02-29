@@ -85,8 +85,6 @@ Engine::DxDevice::DxDevice(Engine::Base^ baseEngine) :
 	CreateDeviceIndependentResources();
 	CreateDeviceResources();
 
-    m_factory = std::make_unique<DxDeviceFactory>();
-    m_defaultContext = std::make_unique<DxDeviceContext>(GetD3DDeviceContext());
 }
 
 Engine::DxDevice::~DxDevice()
@@ -503,6 +501,8 @@ void Engine::DxDevice::SetWindow(CoreWindow^ window)
 	m_d2dContext->SetDpi(m_dpi, m_dpi);
 
 	ReloadWindowSizeResources();
+    m_factory = std::make_unique<DxDeviceFactory>();
+    m_defaultContext = std::make_unique<DxDeviceContext>(GetD3DDeviceContext());
 }
 
 // This method is called in the event handler for the SizeChanged event.

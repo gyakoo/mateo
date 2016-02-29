@@ -302,18 +302,20 @@ void DxDeviceContext::ApplyConstantBuffers(ID3D11DeviceContext* context, DxDevic
         // get general CB for shader (i)
         cbId = m_currentState.m_constantBuffers[i];
         DxConstantBuffer& cbGeneral = factory.lockConstantBuffer(cbId);
-
-        // for all real CBs of this shader
-        const uint32_t cbCount = cbGeneral.GetBuffersCount();
-        for (uint32_t j = 0; j < cbCount; ++j)
+        if (cbGeneral.state != DXSTATE_INVALID)
         {
-            ID3D11Buffer* pd3dBuffer = cbGeneral.GetD3DBuffer(j);
-            // copy the data from cpu memory to ID3D11Buffer (if dirty)
-            DxConstantBuffer::ConstantBuffer& cb = cbGeneral.GetBuffer(j);
+            // for all real CBs of this shader
+            const uint32_t cbCount = cbGeneral.GetBuffersCount();
+            for (uint32_t j = 0; j < cbCount; ++j)
+            {
+                ID3D11Buffer* pd3dBuffer = cbGeneral.GetD3DBuffer(j);
+                // copy the data from cpu memory to ID3D11Buffer (if dirty)
+                DxConstantBuffer::ConstantBuffer& cb = cbGeneral.GetBuffer(j);
 
-            // if this CB was dirty, set to the device context
-            if (cb.Flush(context, pd3dBuffer))
-                (context->*(d3dFunctions[i]))(cb.bindPoint, 1, &pd3dBuffer);
+                // if this CB was dirty, set to the device context
+                if (cb.Flush(context, pd3dBuffer))
+                    (context->*(d3dFunctions[i]))(cb.bindPoint, 1, &pd3dBuffer);
+            }
         }
         factory.unlockConstantBuffer(cbId);
     }
@@ -390,7 +392,7 @@ void DxDeviceContext::ApplyOM(ID3D11DeviceContext* context, DxDeviceFactory& fac
 }
 
 // only sets the different states
-void DxDeviceContext::ApplyStatesDiff()
+void DxDeviceContext::Apply()
 {
     // did anything change?
     if (m_currentState == m_lastState)
@@ -415,19 +417,19 @@ void DxDeviceContext::DrawIndexed(uint32_t indexCount, uint32_t startIndexLocati
 {
     ThrowIfAssert(m_currentState.m_IAIndexBuffer.IsValid(), L"No index buffer bound");
     
-    ApplyStatesDiff();
+    Apply();
     m_deviceContext->DrawIndexed(indexCount, startIndexLocation, baseVertexLocation);
 }
 
 void DxDeviceContext::Draw(uint32_t vertexCount, uint32_t startVertexLocation )
 {
-    ApplyStatesDiff();
+    Apply();
     m_deviceContext->Draw(vertexCount, startVertexLocation);
 }
 
 void DxDeviceContext::DrawAuto()
 {
-    ApplyStatesDiff();
+    Apply();
 
     DxDeviceFactory& factory = DxDevice::GetInstance()->GetFactory();
     
