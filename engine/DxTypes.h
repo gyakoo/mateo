@@ -94,6 +94,14 @@ namespace Engine
         COMMONSAMPLER_MAX 
     };
 
+    interface DxLifetime
+    {
+    public:
+        virtual void CreateResources() = 0;
+        virtual void ReleaseResources() = 0;
+        virtual void ReloadWindowSizeResources() = 0;
+    };
+
     struct DxResource
     {
         DxResource() : state(DXSTATE_INVALID), hashValue(0), lockCount(0), refCount(1) {}

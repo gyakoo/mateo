@@ -34,7 +34,7 @@ void DxDeviceFactory::unlock##typetoken(Id##typetoken id)\
 	for (int i = 0; i < count; ++i)\
 	{\
 		state.state = DXSTATE_FIXED;\
-		state.stateObj = (commonStates.*facMethods[i])();\
+		state.stateObj = ( m_commonStates.get()->*facMethods[i])();\
 		m_##typetoken##s.push_back(state);\
 		m_##typetoken##sCommon[i] = Id##typetoken(i);\
 	}\
@@ -524,7 +524,7 @@ void DxDeviceFactory::createCommonStates()
 {
 	using namespace DirectX;
 	auto dxDev = DxDevice::GetInstance();
-	CommonStates commonStates(dxDev->GetD3DDevice());
+    m_commonStates = std::make_unique<DirectX::CommonStates>(dxDev->GetD3DDevice());
 	
 	// blend states
 	DXDEVFACTORY_EMIT_CREATECOMMON(BlendState, COMMONBLEND_MAX, &CommonStates::Opaque, &CommonStates::AlphaBlend, &CommonStates::Additive, &CommonStates::NonPremultiplied);
@@ -549,6 +549,7 @@ void DxDeviceFactory::releaseCommonStates()
 	for (auto rid : m_DepthStencilStatesCommon) releaseResourceInternal(m_DepthStencilStates,IdGeneric::ExtractNumber(rid),true);
 	for (auto rid : m_RasterizerStatesCommon)   releaseResourceInternal(m_RasterizerStates, IdGeneric::ExtractNumber(rid), true);
 	for (auto rid : m_SamplerStatesCommon)      releaseResourceInternal(m_SamplerStates, IdGeneric::ExtractNumber(rid), true);
+    m_commonStates.reset();
 }
 
 DXDEVFACTORY_EMIT_LOCKUNLOCK_IMPL(RenderTarget);

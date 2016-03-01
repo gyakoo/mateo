@@ -70,21 +70,21 @@ DxDeviceContext::DxDeviceContext(ID3D11DeviceContext* deviceContext)
 #endif
 }
 
-void DxDeviceContext::BeginMarker(const std::wstring& name)
+void DxDeviceContext::MarkerBegin(const std::wstring& name)
 {
 #ifdef _DEBUG
     m_userAnnotation->BeginEvent(name.c_str());
 #endif
 }
 
-void DxDeviceContext::EndMarker()
+void DxDeviceContext::MarkerEnd()
 {
 #ifdef _DEBUG
     m_userAnnotation->EndEvent();
 #endif
 }
 
-void DxDeviceContext::ClearRenderTarget(std::initializer_list<IdRenderTarget> arrayRTs, const float* color, uint32_t depthStencilFlags, float depth, uint8_t stencil)
+void DxDeviceContext::CmdClearRenderTarget(std::initializer_list<IdRenderTarget> arrayRTs, const float* color, uint32_t depthStencilFlags, float depth, uint8_t stencil)
 {
 	auto& factory = DxDevice::GetInstance()->GetFactory();
 
@@ -102,7 +102,7 @@ void DxDeviceContext::ClearRenderTarget(std::initializer_list<IdRenderTarget> ar
 	}
 }
 
-void DxDeviceContext::ClearRenderTargetDefault(const float* color)
+void DxDeviceContext::CmdClearRenderTargetDefault(const float* color)
 {
 	auto dxDev = DxDevice::GetInstance();
 	
@@ -413,7 +413,7 @@ void DxDeviceContext::Apply()
     m_lastState = m_currentState;
 }
 
-void DxDeviceContext::DrawIndexed(uint32_t indexCount, uint32_t startIndexLocation, uint32_t baseVertexLocation)
+void DxDeviceContext::CmdDrawIndexed(uint32_t indexCount, uint32_t startIndexLocation, uint32_t baseVertexLocation)
 {
     ThrowIfAssert(m_currentState.m_IAIndexBuffer.IsValid(), L"No index buffer bound");
     
@@ -421,13 +421,13 @@ void DxDeviceContext::DrawIndexed(uint32_t indexCount, uint32_t startIndexLocati
     m_deviceContext->DrawIndexed(indexCount, startIndexLocation, baseVertexLocation);
 }
 
-void DxDeviceContext::Draw(uint32_t vertexCount, uint32_t startVertexLocation )
+void DxDeviceContext::CmdDraw(uint32_t vertexCount, uint32_t startVertexLocation )
 {
     Apply();
     m_deviceContext->Draw(vertexCount, startVertexLocation);
 }
 
-void DxDeviceContext::DrawAuto()
+void DxDeviceContext::CmdDrawAuto()
 {
     Apply();
 
@@ -438,7 +438,7 @@ void DxDeviceContext::DrawAuto()
     {
         // indexed draw
         auto& ib = factory.lockIndexBuffer(m_currentState.m_IAIndexBuffer);
-        DrawIndexed(ib.count, 0, 0);
+        CmdDrawIndexed(ib.count, 0, 0);
         factory.unlockIndexBuffer(m_currentState.m_IAIndexBuffer);
     }
     else
@@ -453,6 +453,6 @@ void DxDeviceContext::DrawAuto()
             factory.unlockVertexBuffer(vbid);
         }
         if (minCount != 0xffffffff)
-            Draw(minCount, 0);
+            CmdDraw(minCount, 0);
     }
 }

@@ -242,11 +242,11 @@ eDxShaderConstantType DxHelper::D3D11TypeToSCT(const D3D11_SHADER_TYPE_DESC &c)
 DxMarkerScoped::DxMarkerScoped(DxDeviceContext* ctx, const std::wstring& name)
     : context(ctx)
 {
-    ctx->BeginMarker(name);
+    ctx->MarkerBegin(name);
 }
 
 DxMarkerScoped::~DxMarkerScoped()
 {
-    context->EndMarker();
+    context->MarkerEnd();
 }
 

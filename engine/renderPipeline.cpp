@@ -10,7 +10,7 @@ namespace Engine
 
   RenderPipeline::~RenderPipeline()
   {
-      releaseResources();
+      ReleaseResources();
   }
 
   void RenderPipeline::Update(const StepTimer& timer)
@@ -23,12 +23,12 @@ namespace Engine
 
   }
 
-  void RenderPipeline::createResources()
+  void RenderPipeline::CreateResources()
   {
 
   }
 
-  void RenderPipeline::releaseResources()
+  void RenderPipeline::ReleaseResources()
   {
 
   }

@@ -1,10 +1,11 @@
 #pragma once
+#include <engine/DxTypes.h>
 
 namespace Engine
 {
   class StepTimer;
-
-  class RenderPipeline
+  
+  class RenderPipeline : public DxLifetime
   {
   public:
     RenderPipeline();
@@ -13,9 +14,9 @@ namespace Engine
     virtual void Update(const StepTimer& timer);
     virtual void Render();
 
-    virtual void createResources();
-    virtual void releaseResources();
-    virtual void ReloadWindowSizeResources();
+    virtual void CreateResources() override;
+    virtual void ReleaseResources() override;
+    virtual void ReloadWindowSizeResources() override;
   };
 
 };

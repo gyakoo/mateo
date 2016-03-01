@@ -173,7 +173,7 @@ void Sample3DSceneRenderer::Render()
 		);
 
 	// Draw the objects.
-	context->DrawIndexed(
+	context->CmdDrawIndexed(
 		m_indexCount,
 		0,
 		0

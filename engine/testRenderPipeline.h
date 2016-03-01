@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <engine/RenderPipeline.h>
+#include <engine/Terrain.h>
 
 namespace Engine
 {
@@ -13,14 +14,15 @@ namespace Engine
         virtual void Update(const StepTimer& timer);
         virtual void Render();
 
-        virtual void createResources();
-        virtual void releaseResources();
-        virtual void ReloadWindowSizeResources();
+        virtual void CreateResources() override;
+        virtual void ReleaseResources() override;
+        virtual void ReloadWindowSizeResources() override;
 
 	private:
-        IdTexture   m_mytex;
-        IdByteCode  m_psByteCode;
-        IdShader    m_ps;
-        IdConstantBuffer m_psCb;
+        std::unique_ptr<DirectX::EffectFactory> m_fxFactory;
+        std::unique_ptr<DirectX::Model> m_model;
+
+        Terrain     m_terrain;
+        DirectX::SimpleMath::Matrix m_world, m_view, m_proj;
 	};
 }

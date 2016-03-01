@@ -38,6 +38,9 @@
     <ClCompile Include="DxTypes.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="Terrain.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -71,6 +74,9 @@
     <ClInclude Include="DxTypes.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Terrain.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="todo.txt" />
@@ -82,5 +88,6 @@
     <None Include="..\DirectXCompiler\x86\d3dcompiler_47.dll">
       <Filter>Graphics</Filter>
     </None>
+    <None Include="Scene.fbx" />
   </ItemGroup>
 </Project>

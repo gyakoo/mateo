@@ -6,17 +6,22 @@
 
 using namespace Engine;
 using namespace Microsoft::WRL;
+using namespace DirectX;
+using namespace SimpleMath;
 
 // Initializes D2D resources used for text rendering.
 TestRenderPipeline::TestRenderPipeline()
 {
+    m_proj = Matrix::CreatePerspectiveFieldOfView(45.0f, 1.0f, 0.01f, 100.0f);
+    m_world = Matrix::Identity;
+    m_view.Translation(Vector3(0, 0, -10.0f));
 }
 
 // Updates the text to be displayed.
 void TestRenderPipeline::Update(const StepTimer& timer)
 {
     auto DxDevice = DxDevice::GetInstance();
-
+    m_terrain.Update(timer);
 }
 
 // Renders a frame to the screen.
@@ -26,54 +31,43 @@ void TestRenderPipeline::Render()
     auto& context = dxDev->GetDefaultContext();
     auto& factory = dxDev->GetFactory();
 
-    // clear render target
-    {
-        //auto context = DxDevice->GetD3DDeviceContext();
-
-        // Reset the viewport to target the whole screen.
-
-        // Reset render targets to the screen.
-        //ID3D11RenderTargetView *const targets[1] = { DxDevice->GetBackBufferRenderTargetView() };
-        //context->OMSetRenderTargets(1, targets, DxDevice->GetDepthStencilView());
-
-        // Clear the back buffer and depth stencil view.
-        //context->ClearRenderTargetView(DxDevice->GetBackBufferRenderTargetView(), DirectX::Colors::CornflowerBlue);
-        //context->ClearDepthStencilView(DxDevice->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-    }
-    
     context.SetViewport(dxDev->GetScreenViewport());
     context.SetRenderTargetDefault();
-    context.ClearRenderTargetDefault(DirectX::Colors::CornflowerBlue);
-
+    context.CmdClearRenderTargetDefault(DirectX::Colors::CornflowerBlue);
     context.Apply();
+
+    m_terrain.Render();
+    if (m_model)
+    {
+        m_model->Draw(dxDev->GetD3DDeviceContext(), factory.getCommonStates(), m_world, m_view, m_proj);
+    }
 }
 
-void TestRenderPipeline::createResources()
+void TestRenderPipeline::CreateResources()
 {
-    auto& factory = DxDevice::GetInstance()->GetFactory();
-    factory.createTexture(L"Content\\stones.jpg")
-        .then([this](IdTexture texId) 
+    RenderPipeline::CreateResources();
+
+    auto dxDevice = DxDevice::GetInstance()->GetD3DDevice();
+    m_fxFactory = std::make_unique<DirectX::EffectFactory>(dxDevice);
+    
+    ReadDataAsync(L"engine\\scene.cmo").then([dxDevice,this](const std::vector<byte>& filedata)
     {
-        m_mytex = texId; 
+        m_model = DirectX::Model::CreateFromCMO(dxDevice, (uint8_t*)&filedata[0], filedata.size(), *m_fxFactory);
     });
 
-    factory.createShaderByteCode(L"SamplePixelShader.cso")
-        .then([&factory, this](IdByteCode bcId)
-    {
-        m_ps = factory.createShader(bcId, SHADER_PIXEL);
-        m_psCb = factory.createConstantBuffer(bcId, SHADER_PIXEL);
-    } );
+    m_terrain.CreateResources();
 }
-void TestRenderPipeline::releaseResources()
+void TestRenderPipeline::ReleaseResources()
 {
-    auto factory = DxDevice::GetInstance()->GetFactory();
-    factory.releaseResource(m_ps);
-    factory.releaseResource(m_psCb);
-    factory.releaseResource(m_psByteCode);
-    factory.releaseResource(m_mytex);
+    RenderPipeline::ReleaseResources();
+
+    m_terrain.ReleaseResources();
+    m_fxFactory.reset();
+    m_model.reset();
 }
 
 void TestRenderPipeline::ReloadWindowSizeResources()
 {
+    RenderPipeline::ReloadWindowSizeResources();
 
 }

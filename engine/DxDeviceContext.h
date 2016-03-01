@@ -80,15 +80,15 @@ namespace Engine
         
         // COMMANDS - Clear, Drawing
         void Apply();
-        void ClearRenderTarget(std::initializer_list<IdRenderTarget> arrayRTs, const float* color, uint32_t depthStencilFlags, float depth = 1.0f, uint8_t stencil = 0);
-        void ClearRenderTargetDefault(const float* color);
-        void DrawIndexed(uint32_t indexCount, uint32_t startIndexLocation=0, uint32_t baseVertexLocation=0);
-        void Draw(uint32_t vertexCount, uint32_t startVertexLocation = 0);
-        void DrawAuto();
+        void CmdClearRenderTarget(std::initializer_list<IdRenderTarget> arrayRTs, const float* color, uint32_t depthStencilFlags, float depth = 1.0f, uint8_t stencil = 0);
+        void CmdClearRenderTargetDefault(const float* color);
+        void CmdDrawIndexed(uint32_t indexCount, uint32_t startIndexLocation=0, uint32_t baseVertexLocation=0);
+        void CmdDraw(uint32_t vertexCount, uint32_t startVertexLocation = 0);
+        void CmdDrawAuto();
 
         // Debugging
-        void BeginMarker(const std::wstring& name);
-        void EndMarker();
+        void MarkerBegin(const std::wstring& name);
+        void MarkerEnd();
 
     private:
         void ApplyRS(ID3D11DeviceContext* context, DxDeviceFactory& factory);

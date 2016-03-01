@@ -51,6 +51,7 @@ namespace Engine
 		IdRasterizerState	getCommonRasterizerState(eDxCommonRasterizerType rasterizerType);
 		IdSamplerState		getCommonSamplerState(eDxCommonSamplerType samplerType);
 		IdRenderTarget		getCommonRenderTarget();
+        DirectX::CommonStates& getCommonStates() { return *m_commonStates; }
 
 		void fillVertexBuffer(IdVertexBuffer vbId, const DxMeshBufferElementDesc& desc);
 		void fillIndexBuffer(IdIndexBuffer ibId, const DxMeshBufferElementDesc& desc);
@@ -93,6 +94,7 @@ namespace Engine
 		IdRenderTarget m_commonRenderTarget;
         HMODULE m_d3dDLLCompiler;
         D3DReflectFunc m_d3dDLLReflect;
+        std::unique_ptr<DirectX::CommonStates> m_commonStates;
     };
 
 };
