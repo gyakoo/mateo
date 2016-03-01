@@ -95,7 +95,7 @@ namespace Engine
 
     for (auto& rpip : m_renderPipelines)
     {
-        rpip->createResources();
+        rpip->CreateResources();
         rpip->ReloadWindowSizeResources();
     }
   }
@@ -168,7 +168,7 @@ namespace Engine
   {
       for (auto rpip : m_renderPipelines)
       {
-          rpip->releaseResources();
+          rpip->ReleaseResources();
       }
   }
 
@@ -176,7 +176,7 @@ namespace Engine
   {
       for (auto rpip : m_renderPipelines)
       {
-          rpip->createResources();
+          rpip->CreateResources();
       }
   }
 
